@@ -8,7 +8,7 @@
 #include "Scheduler.hpp"
 
 static bool migrating = false;
-static unsigned active_machines = 16;
+static unsigned active_machines = 48;
 
 void Scheduler::Init() {
     // Find the parameters of the clusters
@@ -21,8 +21,16 @@ void Scheduler::Init() {
     // 
     SimOutput("Scheduler::Init(): Total number of machines is " + to_string(Machine_GetTotal()), 3);
     SimOutput("Scheduler::Init(): Initializing scheduler", 1);
-    for(unsigned i = 0; i < active_machines; i++)
+    for(unsigned i = 0; i < 8; i++)
         vms.push_back(VM_Create(LINUX, X86));
+    for(unsigned i = 8; i < 16; i++)
+        vms.push_back(VM_Create(WIN, X86));
+    for (unsigned i = 16; i < 40; ++i) {
+        vms.push_back(VM_Create(WIN, ARM));
+    }
+    for (unsigned i = 40; i < 48; ++i) {
+        vms.push_back(VM_Create(AIX, POWER));
+    }
     for(unsigned i = 0; i < active_machines; i++) {
         machines.push_back(MachineId_t(i));
     }    
@@ -36,10 +44,10 @@ void Scheduler::Init() {
             for(unsigned j = 0; j < 8; j++)
                 Machine_SetCorePerformance(MachineId_t(0), j, P3);
     // Turn off the ARM machines
-    for(unsigned i = 24; i < Machine_GetTotal(); i++)
-        Machine_SetState(MachineId_t(i), S5);
+    // for(unsigned i = 24; i < Machine_GetTotal(); i++)
+    //     Machine_SetState(MachineId_t(i), S5);
 
-    SimOutput("Scheduler::Init(): VM ids are " + to_string(vms[0]) + " ahd " + to_string(vms[1]), 3);
+    SimOutput("Scheduler::Init(): VM ids are " + to_string(vms[0]) + " and " + to_string(vms[1]), 3);
 }
 
 void Scheduler::MigrationComplete(Time_t time, VMId_t vm_id) {
@@ -47,6 +55,11 @@ void Scheduler::MigrationComplete(Time_t time, VMId_t vm_id) {
 }
 
 void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
+    // bool gpu = IsTaskGPUCapable(task_id);
+    // unsigned int mem = GetTaskMemory(task_id);
+    VMType_t vmType = RequiredVMType(task_id);
+    // SLAType_t slaType = RequiredSLA(task_id);
+    CPUType_t cpu = RequiredCPUType(task_id);
     // Get the task parameters
     //  IsGPUCapable(task_id);
     //  GetMemory(task_id);
@@ -65,12 +78,22 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
     //
     // Other possibilities as desired
     Priority_t priority = (task_id == 0 || task_id == 64)? HIGH_PRIORITY : MID_PRIORITY;
-    if(migrating) {
-        VM_AddTask(vms[0], task_id, priority);
+    // if(migrating) {
+    //     VM_AddTask(vms[0], task_id, priority);
+    // }
+    // else {
+    unsigned int rand = 0;
+    if (vmType == AIX && cpu == POWER) {
+        rand = std::rand() % 8 + 40;
+    } else if (vmType == LINUX && cpu == X86) {
+        rand = std::rand() % 8;
+    } else if (vmType == WIN && cpu == X86) {
+        rand = std::rand() % 8 + 8;
+    } else if (vmType == WIN && cpu == ARM) {
+        rand = std::rand() % 24 + 16;
     }
-    else {
-        VM_AddTask(vms[task_id % active_machines], task_id, priority);
-    }// Skeleton code, you need to change it according to your algorithm
+    VM_AddTask(vms[rand], task_id, priority);
+    // }// Skeleton code, you need to change it according to your algorithm
 }
 
 void Scheduler::PeriodicCheck(Time_t now) {
