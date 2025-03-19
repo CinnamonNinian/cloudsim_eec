@@ -6,9 +6,12 @@
 //
 
 #include "Scheduler.hpp"
+#include <assert.h>
 
 static bool migrating = false;
-static unsigned active_machines = 48;
+static unsigned active_machines;
+
+using namespace std;
 
 void Scheduler::Init() {
     // Find the parameters of the clusters
@@ -19,35 +22,40 @@ void Scheduler::Init() {
     //      Get the number of CPUs
     //      Get if there is a GPU or not
     // 
-    SimOutput("Scheduler::Init(): Total number of machines is " + to_string(Machine_GetTotal()), 3);
+    active_machines = Machine_GetTotal();
+    
+    std::cout << "Scheduler::Init(): Total number of machines is " + to_string(Machine_GetTotal()) << std::endl;
     SimOutput("Scheduler::Init(): Initializing scheduler", 1);
-    for(unsigned i = 0; i < 8; i++)
-        vms.push_back(VM_Create(LINUX, X86));
-    for(unsigned i = 8; i < 16; i++)
-        vms.push_back(VM_Create(WIN, X86));
-    for (unsigned i = 16; i < 40; ++i) {
-        vms.push_back(VM_Create(WIN, ARM));
-    }
-    for (unsigned i = 40; i < 48; ++i) {
-        vms.push_back(VM_Create(AIX, POWER));
-    }
+
+    // for(unsigned i = 0; i < 8; i++)
+    //     vms.push_back(VM_Create(LINUX, X86));
+    // for(unsigned i = 8; i < 16; i++)
+    //     vms.push_back(VM_Create(WIN, X86));
+    // for (unsigned i = 16; i < 40; ++i) {
+    //     vms.push_back(VM_Create(WIN, ARM));
+    // }
+    // for (unsigned i = 40; i < 48; ++i) {
+    //     vms.push_back(VM_Create(AIX, POWER));
+    // }
+
+
+    cout << "Number of tasks: " << GetNumTasks() << endl;
+
+    // for(unsigned i = 0; i < active_machines; i++)
+    //     vms.push_back(VM_Create(WIN, Machine_GetCPUType(i)));
+
     for(unsigned i = 0; i < active_machines; i++) {
         machines.push_back(MachineId_t(i));
     }    
-    for(unsigned i = 0; i < active_machines; i++) {
-        VM_Attach(vms[i], machines[i]);
-    }
+    // for(unsigned i = 0; i < active_machines; i++) {
+    //     VM_Attach(vms[i], machines[i]);
+    // }
 
-    bool dynamic = false;
-    if(dynamic)
-        for(unsigned i = 0; i<4 ; i++)
-            for(unsigned j = 0; j < 8; j++)
-                Machine_SetCorePerformance(MachineId_t(0), j, P3);
     // Turn off the ARM machines
     // for(unsigned i = 24; i < Machine_GetTotal(); i++)
     //     Machine_SetState(MachineId_t(i), S5);
 
-    SimOutput("Scheduler::Init(): VM ids are " + to_string(vms[0]) + " and " + to_string(vms[1]), 3);
+    // SimOutput("Scheduler::Init(): VM ids are " + to_string(vms[0]) + " and " + to_string(vms[1]), 3);
 }
 
 void Scheduler::MigrationComplete(Time_t time, VMId_t vm_id) {
@@ -55,23 +63,21 @@ void Scheduler::MigrationComplete(Time_t time, VMId_t vm_id) {
 }
 
 void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
-    // bool gpu = IsTaskGPUCapable(task_id);
-    // unsigned int mem = GetTaskMemory(task_id);
+    // cout << "making vm for task " << task_id << endl;
+    bool gpu = IsTaskGPUCapable(task_id);
+    unsigned int taskMem = GetTaskMemory(task_id) + VM_MEMORY_OVERHEAD;
     VMType_t vmType = RequiredVMType(task_id);
-    // SLAType_t slaType = RequiredSLA(task_id);
     CPUType_t cpu = RequiredCPUType(task_id);
-    // Get the task parameters
-    //  IsGPUCapable(task_id);
-    //  GetMemory(task_id);
-    //  RequiredVMType(task_id);
-    //  RequiredSLA(task_id);
-    //  RequiredCPUType(task_id);
+    SLAType_t sla = RequiredSLA(task_id);
+    
     // Decide to attach the task to an existing VM, 
     //      vm.AddTask(taskid, Priority_T priority); or
+
     // Create a new VM, attach the VM to a machine
     //      VM vm(type of the VM)
     //      vm.Attach(machine_id);
     //      vm.AddTask(taskid, Priority_t priority) or
+
     // Turn on a machine, create a new VM, attach it to the VM, then add the task
     //
     // Turn on a machine, migrate an existing VM from a loaded machine....
@@ -82,18 +88,40 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
     //     VM_AddTask(vms[0], task_id, priority);
     // }
     // else {
-    unsigned int rand = 0;
-    if (vmType == AIX && cpu == POWER) {
-        rand = std::rand() % 8 + 40;
-    } else if (vmType == LINUX && cpu == X86) {
-        rand = std::rand() % 8;
-    } else if (vmType == WIN && cpu == X86) {
-        rand = std::rand() % 8 + 8;
-    } else if (vmType == WIN && cpu == ARM) {
-        rand = std::rand() % 24 + 16;
+    // unsigned int rand = 0;
+    // if (vmType == AIX && cpu == POWER) {
+    //     rand = std::rand() % 8 + 40;
+    // } else if (vmType == LINUX && cpu == X86) {
+    //     rand = std::rand() % 8;
+    // } else if (vmType == WIN && cpu == X86) {
+    //     rand = std::rand() % 8 + 8;
+    // } else if (vmType == WIN && cpu == ARM) {
+    //     rand = std::rand() % 24 + 16;
+    // }
+    // VM_AddTask(vms[rand], task_id, priority);
+
+    // Greedy algorithm below
+    VMId_t vm = VM_Create(vmType, cpu);
+    vms.push_back(vm);
+    bool added = false;
+    for (unsigned int i = 0; i < active_machines && !added; i++) {
+        // and also make sure it has enough memory lol
+        MachineInfo_t info = Machine_GetInfo(machines[i]);
+        unsigned remainingMem = info.memory_size - info.memory_used;
+
+        
+        SimOutput("Memory size:" + to_string(info.memory_size) + ", memory used: " + to_string(info.memory_used), 3);
+        SimOutput("Current machine is: " + to_string(i), 3);
+        
+        if (Machine_GetCPUType(i) == cpu && remainingMem >= taskMem) {
+            VM_Attach(vms[vm], machines[i]);
+            VM_AddTask(vms[vm], task_id, priority);
+            added = true;
+        }
     }
-    VM_AddTask(vms[rand], task_id, priority);
-    // }// Skeleton code, you need to change it according to your algorithm
+    if (!added) {
+        assert(false);
+    }
 }
 
 void Scheduler::PeriodicCheck(Time_t now) {
@@ -101,6 +129,13 @@ void Scheduler::PeriodicCheck(Time_t now) {
     // SchedulerCheck is called periodically by the simulator to allow you to monitor, make decisions, adjustments, etc.
     // Unlike the other invocations of the scheduler, this one doesn't report any specific event
     // Recommendation: Take advantage of this function to do some monitoring and adjustments as necessary
+    for (unsigned i = 0; i < active_machines; ++i) {
+        MachineInfo_t info = Machine_GetInfo(machines[i]);
+        if (info.memory_used == 0) {
+            // Turn off the machine
+            Machine_SetState(machines[i], S5);
+        }
+    }
 }
 
 void Scheduler::Shutdown(Time_t time) {
@@ -108,11 +143,12 @@ void Scheduler::Shutdown(Time_t time) {
     // Report about the total energy consumed
     // Report about the SLA compliance
     // Shutdown everything to be tidy :-)
+    SimOutput("SimulationComplete(): Initiating shutdown...", 3);
     for(auto & vm: vms) {
         VM_Shutdown(vm);
     }
-    SimOutput("SimulationComplete(): Finished!", 4);
-    SimOutput("SimulationComplete(): Time is " + to_string(time), 4);
+    SimOutput("SimulationComplete(): Finished!", 3);
+    SimOutput("SimulationComplete(): Time is " + to_string(time), 3);
 }
 
 void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
