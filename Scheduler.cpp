@@ -129,13 +129,14 @@ void Scheduler::PeriodicCheck(Time_t now) {
     // SchedulerCheck is called periodically by the simulator to allow you to monitor, make decisions, adjustments, etc.
     // Unlike the other invocations of the scheduler, this one doesn't report any specific event
     // Recommendation: Take advantage of this function to do some monitoring and adjustments as necessary
-    for (unsigned i = 0; i < active_machines; ++i) {
-        MachineInfo_t info = Machine_GetInfo(machines[i]);
-        if (info.memory_used == 0) {
-            // Turn off the machine
-            Machine_SetState(machines[i], S5);
-        }
-    }
+    
+    // for (unsigned i = 0; i < active_machines; ++i) {
+    //     MachineInfo_t info = Machine_GetInfo(machines[i]);
+    //     if (info.memory_used == 0) {
+    //         // Turn off the machine
+    //         Machine_SetState(machines[i], S5);
+    //     }
+    // }
 }
 
 void Scheduler::Shutdown(Time_t time) {
