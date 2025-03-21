@@ -132,4 +132,11 @@ typedef struct {
     VMType_t vm_type;
 } VMInfo_t;
 
+typedef enum {
+    GREEDY,                 
+    P_MAPPER,      
+    LITERATURE,     
+    OUR_OWN         
+} AlgoType_t;
+
 #endif /* SimTypes_h */

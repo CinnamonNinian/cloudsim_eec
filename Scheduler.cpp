@@ -5,12 +5,14 @@
 //  Created by ELMOOTAZBELLAH ELNOZAHY on 10/20/24.
 //
 
-#include "Scheduler.hpp"
-#include <assert.h>
+#include <cassert>
 
+#include "Algorithms.hpp"
+#include "Scheduler.hpp"
 
 static bool migrating = false;
 static unsigned active_machines;
+static AlgoType_t algo_type = GREEDY;
 
 using namespace std;
 
@@ -59,8 +61,9 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
 
     VMId_t vm = VM_Create(vm_type, cpu);
     vms.push_back(vm);
+    
     SimOutput("Attempting to look for machine to place new task in with task id " + to_string(task_id), 3);
-    MachineId_t machine_id = FindMachine(gpu, task_mem, cpu, vm_type);
+    MachineId_t machine_id = FindMachine(algo_type, gpu, task_mem, cpu, vm_type);
     VM_Attach(vm, machine_id);
     VM_AddTask(vm, task_id, priority);
     SimOutput("Task with task id " + to_string(task_id) + " placed successfully", 3);
@@ -73,15 +76,15 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
  * @param cpu the cpu type of the task
  * @param vm_type the vm type of a task
  */
-MachineId_t Scheduler::FindMachine(bool prefer_gpu, unsigned int task_mem, CPUType_t cpu, VMType_t vm_type) {
-    for (unsigned int i = 0; i < active_machines; i++) {
-        MachineInfo_t info = Machine_GetInfo(machines[i]);
-        unsigned mem_left = info.memory_size - info.memory_used;
-        if (Machine_GetCPUType(i) == cpu && mem_left >= task_mem) {
-            return i;
+MachineId_t Scheduler::FindMachine(AlgoType_t algo_type, bool prefer_gpu, unsigned int task_mem, CPUType_t cpu, VMType_t vm_type) {
+    switch (algo_type) {
+        case GREEDY: {
+            return Algorithms::Greedy_FindMachine(machines, prefer_gpu, task_mem, cpu, vm_type);
+        }
+        default: {
+            assert(false);
         }
     }
-    return active_machines + 1; // indicate failure to find machine
 }
 
 
@@ -106,7 +109,7 @@ void Scheduler::Shutdown(Time_t time) {
     // Report about the SLA compliance
     // Shutdown everything to be tidy :-)
     SimOutput("SimulationComplete(): Initiating shutdown...", 3);
-    for(auto & vm: vms) {
+    for(const auto & vm: vms) {
         VM_Shutdown(vm);
     }
     SimOutput("SimulationComplete(): Finished!", 3);
@@ -119,8 +122,65 @@ void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
     // This is an opportunity to make any adjustments to optimize performance/energy
     SimOutput("Scheduler::TaskComplete(): Task " + to_string(task_id) + " is complete at " + to_string(now), 4);
 
-    // vector<MachineInfo_t> sorted = machines;
-    // sort(sorted::iterator, sorted::iterator)+ sorted.size
+    // Greedy Strategy below
+
+    vector<MachineId_t> sorted = machines;
+    sort(sorted.begin(), sorted.end(), compareMachines);
+
+    switch(algo_type) {
+        case GREEDY: {
+            Algorithms::Greedy_TaskComplete(sorted, vms);
+            break;
+        }
+
+        default: {
+            assert(false);
+        }
+    }
+
+    for (unsigned i = sorted.size() - 1; i < sorted.size() && Machine_GetInfo(i).memory_used != 0; --i) {
+        // I'm just purposely overflowing i because I know for a fact we are NOT Having integer_max machines
+        MachineInfo_t inf = Machine_GetInfo(i);
+        
+        for (const auto& vm : vms) {
+            VMInfo_t vmInfo = VM_GetInfo(vm);
+            if (vmInfo.machine_id == i) {
+                for (unsigned j = 0; j < vmInfo.active_tasks.size(); ++j) {
+                    TaskInfo_t tsk = GetTaskInfo(vmInfo.active_tasks[i]);
+                    for (unsigned k = i + 1; k < sorted.size(); ++k) {
+                        MachineInfo_t mchInf = Machine_GetInfo(sorted[k]);
+                        unsigned remainingMem = mchInf.memory_size - mchInf.memory_used;
+                        if (tsk.required_memory + VM_MEMORY_OVERHEAD <= remainingMem) {
+                            VM_Migrate(vm, k);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (inf.active_vms == 0) {
+            Machine_SetState(i, S5);
+        }
+    }
+}
+
+void Scheduler::HandleWarning(Time_t now, TaskId_t task_id) {
+    vector<MachineId_t> sorted = machines;
+    sort(sorted.begin(), sorted.end(), compareMachines);
+    switch(algo_type) {
+        case GREEDY: {
+            Algorithms::Greedy_SLAViolation(sorted, vms, task_id);
+            break;
+        }
+        case P_MAPPER: {
+            Algorithms::Greedy_SLAViolation(sorted, vms, task_id);
+            break;
+        }
+        default: {
+            assert(false);
+        }
+    }
 }
 
 // Public interface below
@@ -180,7 +240,8 @@ void SimulationComplete(Time_t time) {
 }
 
 void SLAWarning(Time_t time, TaskId_t task_id) {
-    
+    SimOutput("SLAWarning(): Task " + to_string(task_id) + " experiencing SLA Warning at time " + to_string(time), 4);
+    Scheduler.HandleWarning(time, task_id);
 }
 
 void StateChangeComplete(Time_t time, MachineId_t machine_id) {
