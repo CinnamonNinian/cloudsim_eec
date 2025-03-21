@@ -9,6 +9,7 @@
 #define Scheduler_hpp
 
 #include <vector>
+#include <algorithm>
 
 #include "Interfaces.h"
 
@@ -18,6 +19,7 @@ public:
     void Init();
     void MigrationComplete(Time_t time, VMId_t vm_id);
     void NewTask(Time_t now, TaskId_t task_id);
+    MachineId_t FindMachine(bool prefer_gpu, unsigned int task_mem, CPUType_t cpu, VMType_t vm_type);
     void PeriodicCheck(Time_t now);
     void Shutdown(Time_t now);
     void TaskComplete(Time_t now, TaskId_t task_id);
@@ -26,6 +28,10 @@ private:
     vector<MachineId_t> machines;
 };
 
-
+bool compareMachines(MachineId_t lhs, MachineId_t rhs) {
+    MachineInfo_t lhsInfo = Machine_GetInfo(lhs);
+    MachineInfo_t rhsInfo = Machine_GetInfo(rhs);
+    return lhsInfo.memory_used < rhsInfo.memory_used;
+}
 
 #endif /* Scheduler_hpp */
