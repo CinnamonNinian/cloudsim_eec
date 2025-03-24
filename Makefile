@@ -12,7 +12,7 @@ SRC = Init.cpp Machine.cpp main.cpp Scheduler.cpp Simulator.cpp Task.cpp VM.cpp
 OBJ = $(SRC:.cpp=.o)
 
 # Executable
-TARGET = simulator
+TARGET = simulator 
 
 # Default target
 all: $(TARGET)

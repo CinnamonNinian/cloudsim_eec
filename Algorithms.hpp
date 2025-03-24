@@ -16,30 +16,30 @@ class Algorithms {
             Find machine implementations
         */
         // Greedy implementation of finding a machine for assigning tasks
-        static MachineId_t Greedy_FindMachine(const vector<MachineId_t>& machines, bool prefer_gpu, unsigned int task_mem, CPUType_t cpu, VMType_t vm_type) {
+        static pair<MachineId_t, VMId_t> Greedy_FindMachine(const vector<MachineId_t>& machines, bool prefer_gpu, unsigned int task_mem, CPUType_t cpu, VMType_t vm_type) {
             for (unsigned int i = 0; i < machines.size(); i++) {
                 MachineInfo_t info = Machine_GetInfo(machines[i]);
                 unsigned mem_left = info.memory_size - info.memory_used;
                 if (Machine_GetCPUType(i) == cpu && mem_left >= task_mem) {
-                    return i;
+                    return {machines[i], -1};
                 }
             }
-            return machines.size() + 1; // indicate failure to find machine
+            return {machines.size() + 1, -1}; // indicate failure to find machine
         }
         
         // pMapper implementation of finding a machine for assigning tasks
-        static MachineId_t PMapper_FindMachine(const vector<MachineId_t>& machines, bool prefer_gpu, unsigned int task_mem, CPUType_t cpu, VMType_t vm_type) {
-            for (unsigned int i = 0; i < machines.size(); i++) {
-                MachineInfo_t info = Machine_GetInfo(machines[i]);
-                unsigned mem_left = info.memory_size - info.memory_used;
-                if (Machine_GetCPUType(i) == cpu && mem_left >= task_mem) {
-                    return i;
-                }
-            }
-            return machines.size() + 1;
-        }
+        // static pair<MachineId_t, VMId_t> PMapper_FindMachine(const vector<MachineId_t>& machines, bool prefer_gpu, unsigned int task_mem, CPUType_t cpu, VMType_t vm_type) {
+        //     for (unsigned int i = 0; i < machines.size(); i++) {
+        //         MachineInfo_t info = Machine_GetInfo(machines[i]);
+        //         unsigned mem_left = info.memory_size - info.memory_used;
+        //         if (Machine_GetCPUType(i) == cpu && mem_left >= task_mem) {
+        //             return {i, -1};
+        //         }
+        //     }
+        //     return {machines.size() + 1, -1};
+        // }
 
-                /*
+        /*
             Find machine implementations
         */
         // Our implementation of finding a machine for assigning tasks
@@ -48,7 +48,7 @@ class Algorithms {
         // 2. Machine has GPU capabilities
         // 3. Machine has a virtual machine of the same type
         // 4. Machine is already running
-        static MachineId_t Our_FindMachine(const vector<MachineId_t>& machines, const vector<vector<VMId_t>>& vms_per_machine, bool prefer_gpu, unsigned int task_mem, CPUType_t cpu, VMType_t vm_type) {
+        static pair<MachineId_t, VMId_t> Our_FindMachine(const vector<MachineId_t>& machines, const vector<vector<VMId_t>>& vms_per_machine, bool prefer_gpu, unsigned int task_mem, CPUType_t cpu, VMType_t vm_type) {
             MachineId_t best_id = machines.size() + 1;
             // variables about the best machine so far
             bool best_has_gpu = !prefer_gpu;
@@ -80,12 +80,22 @@ class Algorithms {
                         best_is_running = is_running;
                     // 4. if best machine is not running and cur machine does
                     } else if (!best_is_running && is_running) {
-                        best_id = i;
+                        best_id = machines[i];
                         best_is_running = is_running;
                     }
                 }
             }
-            return best_id;
+            VMId_t vm_id = VMId_t(-1);
+            if (best_has_vm_type) {
+                for (VMId_t id : vms_per_machine[best_id]) {
+                    if (VM_GetInfo(id).vm_type == vm_type) {
+                        vm_id = id;
+                        break;
+                    }
+                }
+            }
+
+            return {best_id, vm_id};
         }
 
         /*
@@ -120,37 +130,42 @@ class Algorithms {
             }
         }
 
-        static void PMapper_TaskComplete(const vector<MachineId_t>& machines, const vector<VMId_t>& vms) {
+        static void PMapper_TaskComplete(const vector<MachineId_t>& machines, const vector<VMId_t>& vms, const vector<vector<VMId_t>>& vms_per_machine) {
             // assume already sorted from lowest util to highest
 
             unsigned mid = machines.size() / 2;
             TaskId_t smallest = 0;
-            unsigned smallestMemReq = 0;
+            unsigned smallestMemReq = 4294967294;
+            VMId_t smallestVM = 0;
+
+            vector<VMId_t> listVMs = vms_per_machine[machines[0]];
+
+            for (const auto& vm : listVMs) {
+                VMInfo_t vmInf = VM_GetInfo(vm);
+                const vector<TaskId_t>& tsks = vmInf.active_tasks;
+                for (unsigned i = 0; i < tsks.size(); ++i) {
+                    unsigned old = smallestMemReq;
+                    smallestMemReq = min(smallestMemReq, GetTaskInfo(tsks[i]).required_memory + VM_MEMORY_OVERHEAD);
+                    if (smallestMemReq != old) {
+                        smallest = tsks[i];
+                        smallestVM = vm;
+                    }
+                }
+            }
             
             TaskInfo_t tskInfo = GetTaskInfo(smallest);
-            bool found = false;
+            // bool found = false;
 
             for (unsigned i = mid + 1; i < machines.size(); ++i) {
                 MachineInfo_t mchInf = Machine_GetInfo(machines[i]);
-                unsigned reqMem = tskInfo.required_memory + VM_MEMORY_OVERHEAD;
                 unsigned remainingMem = mchInf.memory_size - mchInf.memory_used;
-                if (reqMem < remainingMem && mchInf.cpu == tskInfo.required_cpu) {
-                    for (const auto& vm : vms) {
-                        VMInfo_t vmInf = VM_GetInfo(vm);
-                        for (TaskId_t tsk : vmInf.active_tasks) {
-                            if (tsk == tskInfo.task_id) {
-                                VM_Migrate(vm, i);
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (found) {
-                            break;
-                        }
-                    }
-                    if (found) {
-                        break;
-                    }
+                if (smallestMemReq <= remainingMem && mchInf.cpu == tskInfo.required_cpu) {
+                    cout << "Machine: " << machines[i] << endl;
+                    cout << "smallest vm: " << smallestVM << endl;
+                    cout << "this is smallestmemreq: " << smallestMemReq << endl;
+                    cout << "this is remainingMem: " << remainingMem << endl;
+                    VM_Migrate(smallestVM, machines[i]);
+                    break;
                 }
             }
         }
@@ -191,6 +206,5 @@ class Algorithms {
             }
         }
 };
-
 
 #endif // Algorithms_hpp

@@ -12,7 +12,7 @@
 
 static bool migrating = false;
 static unsigned active_machines;
-static AlgoType_t algo_type = OUR_OWN;
+static AlgoType_t algo_type = P_MAPPER;
 static vector<vector<VMId_t>> vms_per_machine;
 
 using namespace std;
@@ -61,22 +61,29 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
         priority = MID_PRIORITY;
     }
 
-    VMId_t vm = VM_Create(vm_type, cpu);
-    vms.push_back(vm);
-
     
     SimOutput("Attempting to look for machine to place new task in with task id " + to_string(task_id), 3);
-    MachineId_t machine_id = FindMachine(algo_type, gpu, task_mem, cpu, vm_type);
+    auto ret = FindMachine(algo_type, gpu, task_mem, cpu, vm_type);
+    MachineId_t machine_id = ret.first;
+    VMId_t vm_id = ret.second;
 
     if (machine_id == active_machines + 1) {
         SimOutput("Unable to find machine for task with id " + to_string(task_id), 3);
         return;
     }
 
-    VM_Attach(vm, machine_id);
-    vms_per_machine[machine_id].push_back(vm);
-    VM_AddTask(vm, task_id, priority);
-    SimOutput("Task with task id " + to_string(task_id) + " placed successfully", 3);
+    SimOutput("Attaching VM " + to_string(vm_id) + "to Machine", 3);
+    if (vm_id == VMId_t(-1)) {
+        vm_id = VM_Create(vm_type, cpu);
+        SimOutput("Initializing VM with id " + to_string(vm_id), 3);
+        VM_Attach(vm_id, machine_id);
+        vms.push_back(vm_id);
+    }
+
+    vms_per_machine[machine_id].push_back(vm_id);
+    VM_AddTask(vm_id, task_id, priority);
+
+    SimOutput("Task with task id " + to_string(task_id) + " placed successfully on machine " + to_string(machine_id), 3);
 }
 
 /**
@@ -86,7 +93,7 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
  * @param cpu the cpu type of the task
  * @param vm_type the vm type of a task
  */
-MachineId_t Scheduler::FindMachine(AlgoType_t algo_type, bool prefer_gpu, unsigned int task_mem, CPUType_t cpu, VMType_t vm_type) {
+pair<MachineId_t, VMId_t> Scheduler::FindMachine(AlgoType_t algo_type, bool prefer_gpu, unsigned int task_mem, CPUType_t cpu, VMType_t vm_type) {
     switch (algo_type) {
         case GREEDY: {
             return Algorithms::Greedy_FindMachine(machines, prefer_gpu, task_mem, cpu, vm_type);
@@ -96,7 +103,7 @@ MachineId_t Scheduler::FindMachine(AlgoType_t algo_type, bool prefer_gpu, unsign
             vector<MachineId_t> sorted = machines;
             sort(sorted.begin(), sorted.end(), cmpMachinesEnergy);
 
-            MachineId_t ret = Algorithms::PMapper_FindMachine(sorted, prefer_gpu, task_mem, cpu, vm_type);
+            auto ret = Algorithms::Greedy_FindMachine(sorted, prefer_gpu, task_mem, cpu, vm_type);
 
             for (unsigned i = 0; i < sorted.size(); ++i) {
                 if (Machine_GetInfo(sorted[i]).memory_used == 0) {
@@ -159,7 +166,10 @@ void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
         }
 
         case P_MAPPER: {
-            
+            vector<MachineId_t> sorted = machines;
+            sort(sorted.begin(), sorted.end(), compareMachines);
+            Algorithms::PMapper_TaskComplete(sorted, vms, vms_per_machine);
+            break;
         }
 
         case OUR_OWN: {
@@ -258,4 +268,3 @@ void SLAWarning(Time_t time, TaskId_t task_id) {
 void StateChangeComplete(Time_t time, MachineId_t machine_id) {
     // Called in response to an earlier request to change the state of a machine
 }
-
