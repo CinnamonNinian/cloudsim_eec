@@ -1,4 +1,4 @@
-//
+    //
 //  SimTypes.h
 //  CloudSim
 //
@@ -87,24 +87,6 @@ typedef enum {
 #define VM_MEMORY_OVERHEAD  8 
 
 typedef struct {
-    unsigned num_cpus;                      // Number of CPU's on the machine
-    CPUType_t cpu;                          // CPU types deployed in the machine
-    unsigned memory_size;                   // Size of memory
-    unsigned memory_used;                   // The memory currently in use
-    unsigned active_tasks;                  // Number of tasks that are assigned to this machine
-    unsigned active_vms;                    // Number of virtual machines that are attached to this machine
-    bool gpus;                              // True if the processors are equipped with a GPU, false otherwise
-    uint64_t energy_consumed;               // How much energy has been consumed so far
-    vector<unsigned> performance;           // The MIPS ratings for the CPUs at different p-state
-    vector<unsigned> c_states;              // Power consumption under different C states
-    vector<unsigned> p_states;              // Power consumption for cores at different P states. Valid only when C-state is C0.
-    vector<unsigned> s_states;              // Machine power consumption under different S states
-    MachineState_t s_state;                 // The current S state of the machine
-    CPUPerformance_t p_state;               // The current P state of the CPUs (all CPUs are set to the same P state to simplify scheduling
-    MachineId_t machine_id;                 // The identifier of the machine
-} MachineInfo_t;
-
-typedef struct {
     bool completed;
 
     uint64_t total_instructions;
@@ -131,6 +113,24 @@ typedef struct {
     VMId_t vm_id;
     VMType_t vm_type;
 } VMInfo_t;
+
+typedef struct {
+    unsigned num_cpus;                      // Number of CPU's on the machine
+    CPUType_t cpu;                          // CPU types deployed in the machine
+    unsigned memory_size;                   // Size of memory
+    unsigned memory_used;                   // The memory currently in use
+    unsigned active_tasks;                  // Number of tasks that are assigned to this machine
+    unsigned active_vms;                    // Number of virtual machines that are attached to this machine
+    bool gpus;                              // True if the processors are equipped with a GPU, false otherwise
+    uint64_t energy_consumed;               // How much energy has been consumed so far
+    vector<unsigned> performance;           // The MIPS ratings for the CPUs at different p-state
+    vector<unsigned> c_states;              // Power consumption under different C states
+    vector<unsigned> p_states;              // Power consumption for cores at different P states. Valid only when C-state is C0.
+    vector<unsigned> s_states;              // Machine power consumption under different S states
+    MachineState_t s_state;                 // The current S state of the machine
+    CPUPerformance_t p_state;               // The current P state of the CPUs (all CPUs are set to the same P state to simplify scheduling
+    MachineId_t machine_id;                 // The identifier of the machine
+} MachineInfo_t;
 
 typedef enum {
     GREEDY,                 

@@ -35,4 +35,10 @@ bool compareMachines(MachineId_t lhs, MachineId_t rhs) {
     return lhsInfo.memory_used < rhsInfo.memory_used;
 }
 
+bool cmpMachinesEnergy(MachineId_t lhs, MachineId_t rhs) {
+    MachineInfo_t lhsInfo = Machine_GetInfo(lhs);
+    MachineInfo_t rhsInfo = Machine_GetInfo(rhs);
+    return lhsInfo.energy_consumed < rhsInfo.energy_consumed;
+}
+
 #endif /* Scheduler_hpp */

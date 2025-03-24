@@ -12,7 +12,8 @@
 
 static bool migrating = false;
 static unsigned active_machines;
-static AlgoType_t algo_type = GREEDY;
+static AlgoType_t algo_type = OUR_OWN;
+static vector<vector<VMId_t>> vms_per_machine;
 
 using namespace std;
 
@@ -26,6 +27,7 @@ void Scheduler::Init() {
     //      Get if there is a GPU or not
     // 
     active_machines = Machine_GetTotal();
+    vms_per_machine = vector<vector<VMId_t>>(active_machines);
     
     std::cout << "Scheduler::Init(): Total number of machines is " + to_string(Machine_GetTotal()) << std::endl;
     SimOutput("Scheduler::Init(): Initializing scheduler", 1);
@@ -61,10 +63,18 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
 
     VMId_t vm = VM_Create(vm_type, cpu);
     vms.push_back(vm);
+
     
     SimOutput("Attempting to look for machine to place new task in with task id " + to_string(task_id), 3);
     MachineId_t machine_id = FindMachine(algo_type, gpu, task_mem, cpu, vm_type);
+
+    if (machine_id == active_machines + 1) {
+        SimOutput("Unable to find machine for task with id " + to_string(task_id), 3);
+        return;
+    }
+
     VM_Attach(vm, machine_id);
+    vms_per_machine[machine_id].push_back(vm);
     VM_AddTask(vm, task_id, priority);
     SimOutput("Task with task id " + to_string(task_id) + " placed successfully", 3);
 }
@@ -81,6 +91,26 @@ MachineId_t Scheduler::FindMachine(AlgoType_t algo_type, bool prefer_gpu, unsign
         case GREEDY: {
             return Algorithms::Greedy_FindMachine(machines, prefer_gpu, task_mem, cpu, vm_type);
         }
+
+        case P_MAPPER: {
+            vector<MachineId_t> sorted = machines;
+            sort(sorted.begin(), sorted.end(), cmpMachinesEnergy);
+
+            MachineId_t ret = Algorithms::PMapper_FindMachine(sorted, prefer_gpu, task_mem, cpu, vm_type);
+
+            for (unsigned i = 0; i < sorted.size(); ++i) {
+                if (Machine_GetInfo(sorted[i]).memory_used == 0) {
+                    Machine_SetState(sorted[i], S5);
+                }
+            }
+            
+            return ret;
+        }
+
+        case OUR_OWN: {
+            return Algorithms::Our_FindMachine(machines, vms_per_machine, prefer_gpu, task_mem, cpu, vm_type);
+        }
+
         default: {
             assert(false);
         }
@@ -97,7 +127,6 @@ void Scheduler::PeriodicCheck(Time_t now) {
         MachineInfo_t info = Machine_GetInfo(machines[i]);
         if (info.memory_used == 0 && info.active_vms == 0) {
             // Turn off the machine
-            cout << "Turning off machine with id" << i << endl;
             Machine_SetState(machines[i], S5);
         }
     }
@@ -121,46 +150,25 @@ void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
     // Decide if a machine is to be turned off, slowed down, or VMs to be migrated according to your policy
     // This is an opportunity to make any adjustments to optimize performance/energy
     SimOutput("Scheduler::TaskComplete(): Task " + to_string(task_id) + " is complete at " + to_string(now), 4);
-
-    // Greedy Strategy below
-
-    vector<MachineId_t> sorted = machines;
-    sort(sorted.begin(), sorted.end(), compareMachines);
-
     switch(algo_type) {
         case GREEDY: {
+            vector<MachineId_t> sorted = machines;
+            sort(sorted.begin(), sorted.end(), compareMachines);
             Algorithms::Greedy_TaskComplete(sorted, vms);
+            break;
+        }
+
+        case P_MAPPER: {
+            
+        }
+
+        case OUR_OWN: {
+            Algorithms::Our_TaskComplete(machines, vms);
             break;
         }
 
         default: {
             assert(false);
-        }
-    }
-
-    for (unsigned i = sorted.size() - 1; i < sorted.size() && Machine_GetInfo(i).memory_used != 0; --i) {
-        // I'm just purposely overflowing i because I know for a fact we are NOT Having integer_max machines
-        MachineInfo_t inf = Machine_GetInfo(i);
-        
-        for (const auto& vm : vms) {
-            VMInfo_t vmInfo = VM_GetInfo(vm);
-            if (vmInfo.machine_id == i) {
-                for (unsigned j = 0; j < vmInfo.active_tasks.size(); ++j) {
-                    TaskInfo_t tsk = GetTaskInfo(vmInfo.active_tasks[i]);
-                    for (unsigned k = i + 1; k < sorted.size(); ++k) {
-                        MachineInfo_t mchInf = Machine_GetInfo(sorted[k]);
-                        unsigned remainingMem = mchInf.memory_size - mchInf.memory_used;
-                        if (tsk.required_memory + VM_MEMORY_OVERHEAD <= remainingMem) {
-                            VM_Migrate(vm, k);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (inf.active_vms == 0) {
-            Machine_SetState(i, S5);
         }
     }
 }
@@ -170,11 +178,14 @@ void Scheduler::HandleWarning(Time_t now, TaskId_t task_id) {
     sort(sorted.begin(), sorted.end(), compareMachines);
     switch(algo_type) {
         case GREEDY: {
-            Algorithms::Greedy_SLAViolation(sorted, vms, task_id);
+            Algorithms::Greedy_SLAViolation(sorted, vms, task_id, GetTaskInfo(task_id).required_cpu);
             break;
         }
         case P_MAPPER: {
-            Algorithms::Greedy_SLAViolation(sorted, vms, task_id);
+            Algorithms::Greedy_SLAViolation(sorted, vms, task_id, GetTaskInfo(task_id).required_cpu);
+            break;
+        }
+        case OUR_OWN: {
             break;
         }
         default: {
