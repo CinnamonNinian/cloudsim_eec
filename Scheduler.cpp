@@ -86,8 +86,8 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
     if (vm_id == VMId_t(-1)) {
         vm_id = VM_Create(vm_type, cpu);
         SimOutput("Initializing VM with id " + to_string(vm_id), 3);
-  
-        // while (stateChange[machines[machine_id]]);
+
+        if ()
 
         VM_Attach(vm_id, machine_id);
         vms.push_back(vm_id);
