@@ -132,11 +132,4 @@ typedef struct {
     MachineId_t machine_id;                 // The identifier of the machine
 } MachineInfo_t;
 
-typedef enum {
-    GREEDY,                 
-    P_MAPPER,      
-    LITERATURE,     
-    OUR_OWN         
-} AlgoType_t;
-
 #endif /* SimTypes_h */
