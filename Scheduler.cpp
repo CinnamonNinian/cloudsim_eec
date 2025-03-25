@@ -7,12 +7,10 @@
 
 #include <cassert>
 
-#include "Algorithms.hpp"
 #include "Scheduler.hpp"
 
 // static bool migrating = false;
 static unsigned active_machines;
-static AlgoType_t algo_type = GREEDY;
 static vector<vector<VMId_t>> vms_per_machine;
 
 static map<VMId_t, bool> migration;
@@ -74,7 +72,7 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
 
     
     SimOutput("Attempting to look for machine to place new task in with task id " + to_string(task_id), 3);
-    auto ret = FindMachine(algo_type, gpu, task_mem, cpu, vm_type);
+    auto ret = FindMachine(gpu, task_mem, cpu, vm_type);
     MachineId_t machine_id = ret.first;
     VMId_t vm_id = ret.second;
 
@@ -86,8 +84,6 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
     if (vm_id == VMId_t(-1)) {
         vm_id = VM_Create(vm_type, cpu);
         SimOutput("Initializing VM with id " + to_string(vm_id), 3);
-
-        if ()
 
         VM_Attach(vm_id, machine_id);
         vms.push_back(vm_id);
@@ -109,38 +105,12 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
  * @param task_mem the memory a task takes up
  * @param cpu the cpu type of the task
  * @param vm_type the vm type of a task
+ * @returns the machine to place the task on, along with the vm to attach it to. 
+ * If machine id is -1, failed to find a machine. 
+ * If vm id is -1, no vm on that machine has the required vm type.
  */
-pair<MachineId_t, VMId_t> Scheduler::FindMachine(AlgoType_t algo_type, bool prefer_gpu, unsigned int task_mem, CPUType_t cpu, VMType_t vm_type) {
-    switch (algo_type) {
-        case GREEDY: {
-            return Algorithms::Greedy_FindMachine(machines, prefer_gpu, task_mem, cpu, vm_type);
-        }
-
-        case P_MAPPER: {
-            vector<MachineId_t> sorted = machines;
-            sort(sorted.begin(), sorted.end(), cmpMachinesEnergy);
-
-            auto ret = Algorithms::Greedy_FindMachine(sorted, prefer_gpu, task_mem, cpu, vm_type);
-
-            for (unsigned i = 0; i < sorted.size(); ++i) {
-                if (Machine_GetInfo(sorted[i]).memory_used == 0) {
-                    Machine_SetState(sorted[i], S5);
-
-                    stateChange[sorted[i]] = true;
-                }
-            }
-            
-            return ret;
-        }
-
-        case OUR_OWN: {
-            return Algorithms::Our_FindMachine(machines, vms_per_machine, prefer_gpu, task_mem, cpu, vm_type);
-        }
-
-        default: {
-            assert(false);
-        }
-    }
+pair<MachineId_t, VMId_t> Scheduler::FindMachine(bool prefer_gpu, unsigned int task_mem, CPUType_t cpu, VMType_t vm_type) {
+    return {-1, -1};
 }
 
 
@@ -178,51 +148,12 @@ void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
     // Decide if a machine is to be turned off, slowed down, or VMs to be migrated according to your policy
     // This is an opportunity to make any adjustments to optimize performance/energy
     SimOutput("Scheduler::TaskComplete(): Task " + to_string(task_id) + " is complete at " + to_string(now), 4);
-    switch(algo_type) {
-        case GREEDY: {
-            vector<MachineId_t> sorted = machines;
-            sort(sorted.begin(), sorted.end(), compareMachines);
-            Algorithms::Greedy_TaskComplete(sorted, vms);
-            break;
-        }
 
-        case P_MAPPER: {
-            vector<MachineId_t> sorted = machines;
-            sort(sorted.begin(), sorted.end(), compareMachines);
-            Algorithms::PMapper_TaskComplete(sorted, vms, vms_per_machine);
-            break;
-        }
-
-        case OUR_OWN: {
-            Algorithms::Our_TaskComplete(machines, vms);
-            break;
-        }
-
-        default: {
-            assert(false);
-        }
-    }
 }
 
 void Scheduler::HandleWarning(Time_t now, TaskId_t task_id) {
     vector<MachineId_t> sorted = machines;
     sort(sorted.begin(), sorted.end(), compareMachines);
-    switch(algo_type) {
-        case GREEDY: {
-            Algorithms::Greedy_SLAViolation(sorted, vms, task_id, GetTaskInfo(task_id).required_cpu);
-            break;
-        }
-        case P_MAPPER: {
-            Algorithms::Greedy_SLAViolation(sorted, vms, task_id, GetTaskInfo(task_id).required_cpu);
-            break;
-        }
-        case OUR_OWN: {
-            break;
-        }
-        default: {
-            assert(false);
-        }
-    }
 }
 
 // Public interface below
