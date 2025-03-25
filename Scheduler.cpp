@@ -207,6 +207,7 @@ void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
                         MachineInfo_t mchInf = Machine_GetInfo(sorted[k]);
                         unsigned remainingMem = mchInf.memory_size - mchInf.memory_used;
                         if (tsk.required_memory + VM_MEMORY_OVERHEAD <= remainingMem && tsk.required_cpu == Machine_GetCPUType(machines[k])) {
+                            migration[vm] = true;
                             VM_Migrate(vm, k);
                             break;
                         }
@@ -234,6 +235,7 @@ void Scheduler::HandleWarning(Time_t now, TaskId_t task_id) {
                 VMInfo_t vmInf = VM_GetInfo(vm);
                 for (TaskId_t tsk : vmInf.active_tasks) {
                     if (tsk == task_id) {
+                        migration[vm] = true;
                         VM_Migrate(vm, i);
                         found = true;
                         break;
