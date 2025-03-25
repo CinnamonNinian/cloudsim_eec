@@ -10,10 +10,13 @@
 #include "Algorithms.hpp"
 #include "Scheduler.hpp"
 
-static bool migrating = false;
+// static bool migrating = false;
 static unsigned active_machines;
-static AlgoType_t algo_type = P_MAPPER;
+static AlgoType_t algo_type = GREEDY;
 static vector<vector<VMId_t>> vms_per_machine;
+
+static map<VMId_t, bool> migration;
+static map<MachineId_t, bool> stateChange;
 
 using namespace std;
 
@@ -37,11 +40,19 @@ void Scheduler::Init() {
 
     for(unsigned i = 0; i < active_machines; i++) {
         machines.push_back(MachineId_t(i));
-    }    
+        stateChange[machines[i]] = false;
+    }
 }
 
 void Scheduler::MigrationComplete(Time_t time, VMId_t vm_id) {
     // Update your data structure. The VM now can receive new tasks
+    SimOutput("Migration has completed for id : " + to_string(vm_id) + " at time " + to_string(time), 3);
+    migration[vms[vm_id]] = false;
+}
+
+void Scheduler::HandleStateChange(Time_t time, MachineId_t machine_id) {
+    SimOutput("State change has completed for id : " + to_string(machine_id) + " at time " + to_string(time), 3);
+    stateChange[machines[machine_id]] = false;
 }
 
 void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
@@ -72,13 +83,19 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
         return;
     }
 
-    SimOutput("Attaching VM " + to_string(vm_id) + "to Machine", 3);
     if (vm_id == VMId_t(-1)) {
         vm_id = VM_Create(vm_type, cpu);
         SimOutput("Initializing VM with id " + to_string(vm_id), 3);
+  
+        // while (stateChange[machines[machine_id]]);
+
         VM_Attach(vm_id, machine_id);
         vms.push_back(vm_id);
+
+        migration[vm_id] = false;
     }
+
+    SimOutput("Attached VM " + to_string(vm_id) + " to Machine", 3);
 
     vms_per_machine[machine_id].push_back(vm_id);
     VM_AddTask(vm_id, task_id, priority);
@@ -108,6 +125,8 @@ pair<MachineId_t, VMId_t> Scheduler::FindMachine(AlgoType_t algo_type, bool pref
             for (unsigned i = 0; i < sorted.size(); ++i) {
                 if (Machine_GetInfo(sorted[i]).memory_used == 0) {
                     Machine_SetState(sorted[i], S5);
+
+                    stateChange[sorted[i]] = true;
                 }
             }
             
@@ -132,9 +151,11 @@ void Scheduler::PeriodicCheck(Time_t now) {
     // Recommendation: Take advantage of this function to do some monitoring and adjustments as necessary
     for (unsigned i = 0; i < active_machines; ++i) {
         MachineInfo_t info = Machine_GetInfo(machines[i]);
-        if (info.memory_used == 0 && info.active_vms == 0) {
+        if (info.memory_used == 0 && info.active_vms == 0 && info.s_state != S5) {
             // Turn off the machine
+            SimOutput("Turning off machine : " + to_string(machines[i]) + " at time : " + to_string(now), 3);
             Machine_SetState(machines[i], S5);
+            stateChange[machines[i]] = true;
         }
     }
 }
@@ -232,19 +253,13 @@ void MigrationDone(Time_t time, VMId_t vm_id) {
     // The function is called on to alert you that migration is complete
     SimOutput("MigrationDone(): Migration of VM " + to_string(vm_id) + " was completed at time " + to_string(time), 4);
     Scheduler.MigrationComplete(time, vm_id);
-    migrating = false;
+    migration[vm_id] = false;
 }
 
 void SchedulerCheck(Time_t time) {
     // This function is called periodically by the simulator, no specific event
     SimOutput("SchedulerCheck(): SchedulerCheck() called at " + to_string(time), 4);
     Scheduler.PeriodicCheck(time);
-    // static unsigned counts = 0;
-    // counts++;
-    // if(counts == 10) {
-    //     migrating = true;
-    //     VM_Migrate(1, 9);
-    // }
 }
 
 void SimulationComplete(Time_t time) {
@@ -266,5 +281,6 @@ void SLAWarning(Time_t time, TaskId_t task_id) {
 }
 
 void StateChangeComplete(Time_t time, MachineId_t machine_id) {
-    // Called in response to an earlier request to change the state of a machine
+    // Called in response to an earlier request to change the state of a machinE
+    Scheduler.HandleStateChange(time, machine_id);
 }
