@@ -13,7 +13,7 @@
 // static bool migrating = false;
 static unsigned active_machines;
 static AlgoType_t algo_type = GREEDY;
-static vector<vector<VMId_t>> vms_per_machine;
+static map<MachineId_t, vector<VMId_t>> vms_per_machine;
 
 static map<VMId_t, bool> migration;
 static map<MachineId_t, bool> stateChange;
@@ -34,7 +34,7 @@ void Scheduler::Init() {
     //      Get if there is a GPU or not
     // 
     active_machines = Machine_GetTotal();
-    vms_per_machine = vector<vector<VMId_t>>(active_machines);
+    // vms_per_machine = vector<vector<VMId_t>>(active_machines);
     
     std::cout << "Scheduler::Init(): Total number of machines is " + to_string(Machine_GetTotal()) << std::endl;
     SimOutput("Scheduler::Init(): Initializing scheduler", 1);
@@ -56,18 +56,28 @@ void Scheduler::MigrationComplete(Time_t time, VMId_t vm_id) {
     for (unsigned i = 0; i < pendingTasks[vm_id].size(); ++i) {
         VM_AddTask(vm_id, pendingTasks[vm_id][i], HIGH_PRIORITY);
     }
+
+    pendingTasks[vm_id].clear();
 }
 
 void Scheduler::HandleStateChange(Time_t time, MachineId_t machine_id) {
-    SimOutput("State change has completed for id : " + to_string(machine_id) + " at time " + to_string(time), 3);
+    SimOutput("State change has completed for id : " + to_string(machine_id) + 
+    " at time " + to_string(time) + " where s-state is now " + to_string(Machine_GetInfo(machine_id).s_state), 3);
     stateChange[machine_id] = false;
 
-    for (unsigned i = 0; i < pendingVMs[machine_id].size(); ++i) {
-        VM_Attach(pendingVMs[machine_id][i], machine_id);
-        for (unsigned j = 0; j < pendingTasks[pendingVMs[machine_id][i]].size(); ++j) {
-            VM_AddTask(pendingVMs[machine_id][i], pendingTasks[pendingVMs[machine_id][i]][j], HIGH_PRIORITY);
+    if (Machine_GetInfo(machine_id).s_state == S0) {
+        for (unsigned i = 0; i < pendingVMs[machine_id].size(); ++i) {
+            VM_Attach(pendingVMs[machine_id][i], machine_id);
+            for (unsigned j = 0; j < pendingTasks[pendingVMs[machine_id][i]].size(); ++j) {
+                VM_AddTask(pendingVMs[machine_id][i], pendingTasks[pendingVMs[machine_id][i]][j], HIGH_PRIORITY);
+            }
+            pendingTasks[pendingVMs[machine_id][i]].clear();
         }
-    }
+
+        SimOutput("All desired VMs and tasks added to the machine : " + to_string(machine_id), 3);
+        
+        pendingVMs[machine_id].clear();
+    }  
 }
 
 void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
@@ -107,7 +117,7 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
         vm_id = VM_Create(vm_type, cpu);
         SimOutput("Initializing VM with id " + to_string(vm_id), 3);
 
-        if (Machine_GetInfo(machine_id).s_state == S5) {
+        if (Machine_GetInfo(machine_id).s_state == S5 || stateChange[machine_id]) {
             pendingVMs[machine_id].push_back(vm_id);
             pendingTasks[vm_id].push_back(task_id);
             SimOutput("VM " + to_string(vm_id) + " waits to be added to Machine " + to_string(machine_id), 3);
@@ -160,7 +170,9 @@ pair<MachineId_t, VMId_t> Scheduler::FindMachine(AlgoType_t algo_type, bool pref
             }
 
             for (unsigned i = 0; i < sorted.size(); ++i) {
-                if (Machine_GetInfo(sorted[i]).memory_used == 0) {
+                MachineInfo_t mchInf = Machine_GetInfo(sorted[i]);
+                if (mchInf.memory_used == 0 && mchInf.active_vms == 0 && mchInf.s_state != S5 && !stateChange[mchInf.machine_id]) {
+                    SimOutput("Turning off machine : " + to_string(mchInf.machine_id) + " in FindMachines, based on P_Mapper", 3);
                     stateChange[sorted[i]] = true;
                     Machine_SetState(sorted[i], S5);
                 }
