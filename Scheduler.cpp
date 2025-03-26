@@ -16,6 +16,10 @@ static vector<vector<VMId_t>> vms_per_machine;
 static map<VMId_t, bool> migration;
 static map<MachineId_t, bool> stateChange;
 
+static map<VMId_t, vector<TaskId_t>> pendingTasks;
+
+static map<MachineId_t, vector<VMId_t>> pendingVMs;
+
 using namespace std;
 
 void Scheduler::Init() {
@@ -45,12 +49,23 @@ void Scheduler::Init() {
 void Scheduler::MigrationComplete(Time_t time, VMId_t vm_id) {
     // Update your data structure. The VM now can receive new tasks
     SimOutput("Migration has completed for id : " + to_string(vm_id) + " at time " + to_string(time), 3);
-    migration[vms[vm_id]] = false;
+    migration[vm_id] = false;
+
+    for (unsigned i = 0; i < pendingTasks[vm_id].size(); ++i) {
+        VM_AddTask(vm_id, pendingTasks[vm_id][i], HIGH_PRIORITY);
+    }
 }
 
 void Scheduler::HandleStateChange(Time_t time, MachineId_t machine_id) {
     SimOutput("State change has completed for id : " + to_string(machine_id) + " at time " + to_string(time), 3);
-    stateChange[machines[machine_id]] = false;
+    stateChange[machine_id] = false;
+
+    for (unsigned i = 0; i < pendingVMs[machine_id].size(); ++i) {
+        VM_Attach(pendingVMs[machine_id][i], machine_id);
+        for (unsigned j = 0; j < pendingTasks[pendingVMs[machine_id][i]].size(); ++j) {
+            VM_AddTask(pendingVMs[machine_id][i], pendingTasks[pendingVMs[machine_id][i]][j], HIGH_PRIORITY);
+        }
+    }
 }
 
 void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
@@ -59,6 +74,9 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
     VMType_t vm_type = RequiredVMType(task_id);
     CPUType_t cpu = RequiredCPUType(task_id);
     SLAType_t sla = RequiredSLA(task_id);
+
+    // SimOutput("Task ID " + to_string(task_id) + " is projected to take : " 
+    //     + to_string(GetTaskInfo(task_id).target_completion - GetTaskInfo(task_id).arrival) + " amount of time.", 3);
     
     // SLA0: high priority
     // SLA1, SLA2: mid priority
@@ -81,23 +99,40 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
         return;
     }
 
+    bool taskMustWait = false;
+
     if (vm_id == vms.size() + 1) {
         vm_id = VM_Create(vm_type, cpu);
         SimOutput("Initializing VM with id " + to_string(vm_id), 0);
 
-        VM_Attach(vm_id, machine_id);
+        if (Machine_GetInfo(machine_id).s_state == S5) {
+            pendingVMs[machine_id].push_back(vm_id);
+            pendingTasks[vm_id].push_back(task_id);
+            SimOutput("VM " + to_string(vm_id) + " waits to be added to Machine " + to_string(machine_id), 3);
+            taskMustWait = true;
+            stateChange[machine_id] = true;
+            Machine_SetState(machine_id, S0);
+        } else {
+            VM_Attach(vm_id, machine_id);
+            SimOutput("Attached VM " + to_string(vm_id) + " to Machine " + to_string(machine_id), 3);
+        }
 
         vms.push_back(vm_id);
 
         migration[vm_id] = false;
+        vms_per_machine[machine_id].push_back(vm_id);
+    } else {
+        SimOutput("Using pre-existing VM " + to_string(vm_id) + " on Machine " + to_string(machine_id), 3);
+        SimOutput("VM CPU type : " + to_string(VM_GetInfo(vm_id).cpu) + ", and task CPU type" + to_string(GetTaskInfo(task_id).required_cpu) + 
+        ", coupled with machine CPU type " + to_string(Machine_GetCPUType(machine_id)), 3);
     }
 
-    SimOutput("Found VM " + to_string(vm_id) + " on Machine " + to_string(machine_id) + " for task " + to_string(task_id), 0);
-
-    vms_per_machine[machine_id].push_back(vm_id);
-    VM_AddTask(vm_id, task_id, priority);
-
-    SimOutput("Task with task id " + to_string(task_id) + " placed successfully on machine " + to_string(machine_id), 0);
+    if (!taskMustWait) {
+        VM_AddTask(vm_id, task_id, priority);
+        SimOutput("Task with task id " + to_string(task_id) + " placed successfully on machine " + to_string(machine_id), 3);
+    } else {
+        SimOutput("Task with task id " + to_string(task_id) + " awaits placement on machine " + to_string(machine_id), 3);
+    }
 }
 
 /**
@@ -170,7 +205,7 @@ void Scheduler::PeriodicCheck(Time_t now) {
     // Recommendation: Take advantage of this function to do some monitoring and adjustments as necessary
     for (unsigned i = 0; i < active_machines; ++i) {
         MachineInfo_t info = Machine_GetInfo(machines[i]);
-        if (info.memory_used == 0 && info.active_vms == 0 && info.s_state != S5) {
+        if (info.memory_used == 0 && info.active_vms == 0 && info.s_state != S5 && !stateChange[machines[i]]) {
             // Turn off the machine
             Machine_SetState(machines[i], S4);
             stateChange[machines[i]] = true;
