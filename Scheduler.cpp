@@ -90,7 +90,7 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
 
     
     SimOutput("Attempting to look for machine to place new task in with task id " + to_string(task_id), 3);
-    auto ret = FindMachine(algo_type, gpu, task_mem, cpu, vm_type);
+    auto ret = FindMachine(gpu, task_mem, cpu, vm_type);
     MachineId_t machine_id = ret.first;
     VMId_t vm_id = ret.second;
 
