@@ -29,6 +29,20 @@ $(TARGET): $(OBJ)
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
+# Made with chatGPT
+	# Run the simulator executable
+run: $(TARGET)
+	@if [ -z "$(FILE)" ]; then \
+		echo "Usage: make run FILE=<input_file_name> [TAG=<optional_tag>]"; \
+		exit 1; \
+	fi
+	@if [ -z "$(V)" ]; then \
+		./$(TARGET) input_files/$(FILE) > output_$(FILE).txt; \
+	else \
+		./$(TARGET) -v $(V) input_files/$(FILE) > output_$(FILE).txt; \
+	fi
+
+
 # Clean up build files
 clean:
 	rm -f $(OBJ) $(TARGET)

@@ -71,32 +71,33 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
     }
 
     
-    SimOutput("Attempting to look for machine to place new task in with task id " + to_string(task_id), 3);
+    SimOutput("Attempting to look for machine to place new task in with task id " + to_string(task_id) + " at time " + to_string(now), 0);
     auto ret = FindMachine(gpu, task_mem, cpu, vm_type);
     MachineId_t machine_id = ret.first;
     VMId_t vm_id = ret.second;
 
     if (machine_id == active_machines + 1) {
-        SimOutput("Unable to find machine for task with id " + to_string(task_id), 3);
+        SimOutput("Unable to find machine for task with id " + to_string(task_id), 0);
         return;
     }
 
-    if (vm_id == VMId_t(-1)) {
+    if (vm_id == vms.size() + 1) {
         vm_id = VM_Create(vm_type, cpu);
-        SimOutput("Initializing VM with id " + to_string(vm_id), 3);
+        SimOutput("Initializing VM with id " + to_string(vm_id), 0);
 
         VM_Attach(vm_id, machine_id);
+
         vms.push_back(vm_id);
 
         migration[vm_id] = false;
     }
 
-    SimOutput("Attached VM " + to_string(vm_id) + " to Machine", 3);
+    SimOutput("Found VM " + to_string(vm_id) + " on Machine " + to_string(machine_id) + " for task " + to_string(task_id), 0);
 
     vms_per_machine[machine_id].push_back(vm_id);
     VM_AddTask(vm_id, task_id, priority);
 
-    SimOutput("Task with task id " + to_string(task_id) + " placed successfully on machine " + to_string(machine_id), 3);
+    SimOutput("Task with task id " + to_string(task_id) + " placed successfully on machine " + to_string(machine_id), 0);
 }
 
 /**
@@ -146,7 +147,7 @@ pair<MachineId_t, VMId_t> Scheduler::FindMachine(bool prefer_gpu, unsigned int t
             }
         }
     }
-    VMId_t vm_id = VMId_t(-1);
+    VMId_t vm_id = vms.size() + 1;
 
     // If machine has the matching VM type, let's find that VM
     if (best_has_vm_type) {
@@ -171,8 +172,7 @@ void Scheduler::PeriodicCheck(Time_t now) {
         MachineInfo_t info = Machine_GetInfo(machines[i]);
         if (info.memory_used == 0 && info.active_vms == 0 && info.s_state != S5) {
             // Turn off the machine
-            SimOutput("Turning off machine : " + to_string(machines[i]) + " at time : " + to_string(now), 3);
-            Machine_SetState(machines[i], S5);
+            Machine_SetState(machines[i], S4);
             stateChange[machines[i]] = true;
         }
     }
@@ -192,34 +192,34 @@ void Scheduler::Shutdown(Time_t time) {
 }
 
 void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
-    vector<MachineId_t> sorted = machines;
-    sort(sorted.begin(), sorted.end(), compareMachines);
-    for (unsigned i = sorted.size() - 1; i < sorted.size() && Machine_GetInfo(i).memory_used != 0; --i) {
-        // I'm just purposely overflowing i because I know for a fact we are NOT Having integer_max machines
-        MachineInfo_t inf = Machine_GetInfo(i);
+    // vector<MachineId_t> sorted = machines;
+    // sort(sorted.begin(), sorted.end(), compareMachines);
+    // for (unsigned i = sorted.size() - 1; i < sorted.size() && Machine_GetInfo(i).memory_used != 0; --i) {
+    //     // I'm just purposely overflowing i because I know for a fact we are NOT Having integer_max machines
+    //     MachineInfo_t inf = Machine_GetInfo(i);
         
-        for (const auto& vm : vms) {
-            VMInfo_t vmInfo = VM_GetInfo(vm);
-            if (vmInfo.machine_id == i) {
-                for (unsigned j = 0; j < vmInfo.active_tasks.size(); ++j) {
-                    TaskInfo_t tsk = GetTaskInfo(vmInfo.active_tasks[i]);
-                    for (unsigned k = i + 1; k < sorted.size(); ++k) {
-                        MachineInfo_t mchInf = Machine_GetInfo(sorted[k]);
-                        unsigned remainingMem = mchInf.memory_size - mchInf.memory_used;
-                        if (tsk.required_memory + VM_MEMORY_OVERHEAD <= remainingMem && tsk.required_cpu == Machine_GetCPUType(machines[k])) {
-                            migration[vm] = true;
-                            VM_Migrate(vm, k);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
+    //     for (const auto& vm : vms) {
+    //         VMInfo_t vmInfo = VM_GetInfo(vm);
+    //         if (vmInfo.machine_id == i) {
+    //             for (unsigned j = 0; j < vmInfo.active_tasks.size(); ++j) {
+    //                 TaskInfo_t tsk = GetTaskInfo(vmInfo.active_tasks[i]);
+    //                 for (unsigned k = i + 1; k < sorted.size(); ++k) {
+    //                     MachineInfo_t mchInf = Machine_GetInfo(sorted[k]);
+    //                     unsigned remainingMem = mchInf.memory_size - mchInf.memory_used;
+    //                     if (tsk.required_memory + VM_MEMORY_OVERHEAD <= remainingMem && tsk.required_cpu == Machine_GetCPUType(machines[k])) {
+    //                         migration[vm] = true;
+    //                         VM_Migrate(vm, k);
+    //                         break;
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
 
-        if (inf.active_vms == 0) {
-            Machine_SetState(i, S5);
-        }
-    }
+    //     if (inf.active_vms == 0) {
+    //         Machine_SetState(i, S5);
+    //     }
+    // }
 }
 
 void Scheduler::HandleWarning(Time_t now, TaskId_t task_id) {
@@ -308,6 +308,6 @@ void SLAWarning(Time_t time, TaskId_t task_id) {
 }
 
 void StateChangeComplete(Time_t time, MachineId_t machine_id) {
-    // Called in response to an earlier request to change the state of a machinE
+    // Called in response to an earlier request to change the state of a machine
     Scheduler.HandleStateChange(time, machine_id);
 }
