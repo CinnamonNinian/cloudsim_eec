@@ -159,11 +159,6 @@ pair<MachineId_t, VMId_t> Scheduler::FindMachine(AlgoType_t algo_type, bool pref
                 }
             }
 
-            if (Machine_GetInfo(ret.first).s_state == S5) {
-                stateChange[ret.first] = true;
-                Machine_SetState(ret.first, S0);
-            }
-
             for (unsigned i = 0; i < sorted.size(); ++i) {
                 if (Machine_GetInfo(sorted[i]).memory_used == 0) {
                     stateChange[sorted[i]] = true;
