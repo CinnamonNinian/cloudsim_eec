@@ -23,7 +23,7 @@ scheduler: $(OBJ)
 
 # Build target
 $(TARGET): $(OBJ)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TARGET) $(OBJ)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -g -o $(TARGET) $(OBJ)
 
 # Compile source files into object files
 %.o: %.cpp

@@ -18,6 +18,7 @@ class Scheduler {
 public:
     Scheduler()                 {}
     void Init();
+    Priority_t CalculatePriority(TaskId_t task_id);
     void MigrationComplete(Time_t time, VMId_t vm_id);
     void HandleStateChange(Time_t time, MachineId_t machine_id);
     void NewTask(Time_t now, TaskId_t task_id);
