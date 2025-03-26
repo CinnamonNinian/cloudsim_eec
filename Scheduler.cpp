@@ -61,6 +61,9 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
     VMType_t vm_type = RequiredVMType(task_id);
     CPUType_t cpu = RequiredCPUType(task_id);
     SLAType_t sla = RequiredSLA(task_id);
+
+    // SimOutput("Task ID " + to_string(task_id) + " is projected to take : " 
+    //     + to_string(GetTaskInfo(task_id).target_completion - GetTaskInfo(task_id).arrival) + " amount of time.", 3);
     
     // SLA0: high priority
     // SLA1, SLA2: mid priority
@@ -91,11 +94,14 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
         vms.push_back(vm_id);
 
         migration[vm_id] = false;
+        vms_per_machine[machine_id].push_back(vm_id);
+        SimOutput("Attached VM " + to_string(vm_id) + " to Machine " + to_string(machine_id), 3);
+    } else {
+        SimOutput("Using pre-existing VM " + to_string(vm_id) + " on Machine " + to_string(machine_id), 3);
+        SimOutput("VM CPU type : " + to_string(VM_GetInfo(vm_id).cpu) + ", and task CPU type" + to_string(GetTaskInfo(task_id).required_cpu) + 
+        ", coupled with machine CPU type " + to_string(Machine_GetCPUType(machine_id)), 3);
     }
 
-    SimOutput("Attached VM " + to_string(vm_id) + " to Machine", 3);
-
-    vms_per_machine[machine_id].push_back(vm_id);
     VM_AddTask(vm_id, task_id, priority);
 
     SimOutput("Task with task id " + to_string(task_id) + " placed successfully on machine " + to_string(machine_id), 3);
@@ -119,19 +125,20 @@ pair<MachineId_t, VMId_t> Scheduler::FindMachine(AlgoType_t algo_type, bool pref
                 unsigned mem_left = info.memory_size - info.memory_used;
                 if (Machine_GetCPUType(i) == cpu && mem_left >= task_mem) {
                     ret = {machines[i], -1};
+                    break;
                 }
             }
 
-            if (Machine_GetInfo(ret.first).s_state == S5) {
-                stateChange[ret.first] = true;
-                Machine_SetState(ret.first, S0);
+            // if (Machine_GetInfo(ret.first).s_state == S1) {
+            //     stateChange[ret.first] = true;
+            //     Machine_SetState(ret.first, S0);
                 
-            }
+            // }
 
             for (unsigned i = 0; i < sorted.size(); ++i) {
                 if (Machine_GetInfo(sorted[i]).memory_used == 0) {
                     stateChange[sorted[i]] = true;
-                    Machine_SetState(sorted[i], S5);
+                    // Machine_SetState(sorted[i], S1);
                 }
             }
             
@@ -146,12 +153,11 @@ void Scheduler::PeriodicCheck(Time_t now) {
     // Recommendation: Take advantage of this function to do some monitoring and adjustments as necessary
     for (unsigned i = 0; i < active_machines; ++i) {
         MachineInfo_t info = Machine_GetInfo(machines[i]);
-        if (info.memory_used == 0 && info.active_vms == 0 && info.s_state != S5) {
+        if (info.memory_used == 0 && info.active_vms == 0 && info.s_state != S1) {
             // Turn off the machine
             SimOutput("Turning off machine : " + to_string(machines[i]) + " at time : " + to_string(now), 3);
             stateChange[machines[i]] = true;
-            Machine_SetState(machines[i], S5);
-            // while (stateChange[machines[i]]);
+            // Machine_SetState(machines[i], S1);
         }
     }
 }
@@ -206,10 +212,7 @@ void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
             MachineInfo_t mchInf = Machine_GetInfo(sorted[i]);
             unsigned remainingMem = mchInf.memory_size - mchInf.memory_used;
             if (smallestMemReq <= remainingMem && mchInf.cpu == tskInfo.required_cpu) {
-                // cout << "Machine: " << machines[i] << endl;
-                // cout << "smallest vm: " << smallestVM << endl;
-                // cout << "this is smallestmemreq: " << smallestMemReq << endl;
-                // cout << "this is remainingMem: " << remainingMem << endl;
+                SimOutput("Migrating VM " + to_string(smallestVM) + " to machine " + to_string(sorted[i]), 3);
                 VM_Migrate(smallestVM, sorted[i]);
                 migration[smallestVM] = true;
 
@@ -305,5 +308,6 @@ void SLAWarning(Time_t time, TaskId_t task_id) {
 
 void StateChangeComplete(Time_t time, MachineId_t machine_id) {
     // Called in response to an earlier request to change the state of a machinE
+    SimOutput("StateChangeComplete(): State change of " + to_string(machine_id) + " was completed at time " + to_string(time), 4);
     Scheduler.HandleStateChange(time, machine_id);
 }
