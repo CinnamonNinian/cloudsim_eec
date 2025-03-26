@@ -125,14 +125,13 @@ pair<MachineId_t, VMId_t> Scheduler::FindMachine(AlgoType_t algo_type, bool pref
             if (Machine_GetInfo(ret.first).s_state == S5) {
                 stateChange[ret.first] = true;
                 Machine_SetState(ret.first, S0);
-                // while (stateChange[ret.first]);
+                
             }
 
             for (unsigned i = 0; i < sorted.size(); ++i) {
                 if (Machine_GetInfo(sorted[i]).memory_used == 0) {
-                    Machine_SetState(sorted[i], S5);
-
                     stateChange[sorted[i]] = true;
+                    Machine_SetState(sorted[i], S5);
                 }
             }
             
@@ -179,7 +178,10 @@ void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
         sort(sorted.begin(), sorted.end(), compareMachines);
         unsigned mid = sorted.size() / 2;
         TaskId_t smallest = 0;
+
+        // I have arbitrarily set this value to be UINT_MAX - 1
         unsigned smallestMemReq = 4294967294;
+
         VMId_t smallestVM = 0;
 
         vector<VMId_t> listVMs = vms_per_machine[sorted[0]];
@@ -209,6 +211,8 @@ void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
                 // cout << "this is smallestmemreq: " << smallestMemReq << endl;
                 // cout << "this is remainingMem: " << remainingMem << endl;
                 VM_Migrate(smallestVM, sorted[i]);
+                migration[smallestVM] = true;
+
                 break;
             }
         }
@@ -228,6 +232,7 @@ void Scheduler::HandleWarning(Time_t now, TaskId_t task_id) {
                     for (TaskId_t tsk : vmInf.active_tasks) {
                         if (tsk == task_id) {
                             VM_Migrate(vm, i);
+                            migration[vm] = true;
                             found = true;
                             break;
                         }
