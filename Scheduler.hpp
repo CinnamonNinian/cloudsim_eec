@@ -22,7 +22,7 @@ public:
     void MigrationComplete(Time_t time, VMId_t vm_id);
     void HandleStateChange(Time_t time, MachineId_t machine_id);
     void NewTask(Time_t now, TaskId_t task_id);
-    pair<MachineId_t, VMId_t> FindMachine(bool prefer_gpu, unsigned int task_mem, CPUType_t cpu, VMType_t vm_type);
+    bool FindMachine(bool prefer_gpu, unsigned int task_mem, CPUType_t cpu, VMType_t vm_type, MachineId_t& machine_id);
     void PeriodicCheck(Time_t now);
     void Shutdown(Time_t now);
     void TaskComplete(Time_t now, TaskId_t task_id);
