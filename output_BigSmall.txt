@@ -1,13 +1,19 @@
 Scheduler::Init(): Total number of machines is 24
-Number of tasks: 481258
+Number of tasks: 4088
 VMS PER MACHINE
-1: 0 
-12: 
+1: 0 1 2 
+11: 
+12: 3 4 
 PENDING TASKS
 PENDING VMS
 1: 
+12: 
 MIGRATION
 0: 0
+1: 0
+2: 0
+3: 0
+4: 0
 STATE CHANGE
 0: 0
 1: 0
@@ -34,9 +40,9 @@ STATE CHANGE
 22: 0
 23: 0
 SLA violation report
-SLA0: 0%
-SLA1: 0%
+SLA0: 92.2866%
+SLA1: 58.5366%
 SLA2: 0%
-Total Energy 64.1455KW-Hour
-Simulation run finished in 86400.7 seconds
-Total tasks completed: 481258/481258
+Total Energy 0.145729KW-Hour
+Simulation run finished in 187.92 seconds
+Total tasks completed: 4088/4088
