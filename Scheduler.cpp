@@ -259,30 +259,38 @@ void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
     // Decide if a machine is to be turned off, slowed down, or VMs to be migrated according to your policy
     // This is an opportunity to make any adjustments to optimize performance/energy
     SimOutput("Scheduler::TaskComplete(): Task " + to_string(task_id) + " is complete at " + to_string(now), 4);
-    for (unsigned i = machines.size() - 1; i < machines.size() && Machine_GetInfo(i).memory_used != 0; --i) {
+    vector<MachineId_t> sorted = machines;
+    sort(sorted.begin(), sorted.end(), compareMachines);
+
+    for (unsigned i = sorted.size() - 1; i < sorted.size() && Machine_GetInfo(i).memory_used != 0; --i) {
                 // I'm just purposely overflowing i because I know for a fact we are NOT Having integer_max machines
-                MachineInfo_t inf = Machine_GetInfo(i);
-                
-                for (const auto& vm : vms) {
+                // MachineInfo_t inf = Machine_GetInfo(sorted[i]);
+                for (const auto& vm : vms_per_machine[sorted[i]]) {
                     VMInfo_t vmInfo = VM_GetInfo(vm);
-                    if (vmInfo.machine_id == i) {
-                        for (unsigned j = 0; j < vmInfo.active_tasks.size(); ++j) {
-                            TaskInfo_t tsk = GetTaskInfo(vmInfo.active_tasks[i]);
-                            for (unsigned k = i + 1; k < machines.size(); ++k) {
-                                MachineInfo_t mchInf = Machine_GetInfo(machines[k]);
-                                unsigned remainingMem = mchInf.memory_size - mchInf.memory_used;
-                                if (tsk.required_memory + VM_MEMORY_OVERHEAD <= remainingMem && tsk.required_cpu == Machine_GetCPUType(machines[k])) {
-                                    VM_Migrate(vm, k);
-                                    break;
-                                }
-                            }
+                    unsigned reqMem = VM_MEMORY_OVERHEAD;
+                    for (unsigned j = 0; j < vmInfo.active_tasks.size(); ++j) {
+                        TaskInfo_t tsk = GetTaskInfo(vmInfo.active_tasks[j]);
+                        reqMem += tsk.required_memory;
+                    }
+
+                    for (unsigned k = i + 1; k < sorted.size(); ++k) {
+                        MachineInfo_t mchInf = Machine_GetInfo(sorted[k]);
+                        unsigned remainingMem = mchInf.memory_size - mchInf.memory_used;
+                        unsigned pendingMem = CalcPendingMem(pendingVMs[sorted[k]]);
+                        remainingMem -= pendingMem;
+                        if (reqMem <= remainingMem && vmInfo.cpu == mchInf.cpu) {
+                            pendingVMs[sorted[k]].push_back(vm);
+                            migration[sorted[k]] = true;
+                            VM_Migrate(vm, sorted[k]);
+                            break;
                         }
                     }
                 }
-        
-                if (inf.active_vms == 0) {
-                    Machine_SetState(i, S5);
-                }
+                
+                // To do: active_vms isn't immediately updated during a migration; fix this so it works
+                // if (inf.active_vms == 0) {
+                //     Machine_SetState(i, S5);
+                // }
             }
 }
 
@@ -290,29 +298,48 @@ void Scheduler::HandleWarning(Time_t now, TaskId_t task_id) {
     vector<MachineId_t> sorted = machines;
     sort(sorted.begin(), sorted.end(), compareMachines);
     TaskInfo_t tskInf = GetTaskInfo(task_id);
-            bool found = false;
-            for (unsigned i = 0; i < sorted.size(); ++i) {
-                MachineInfo_t mchInf = Machine_GetInfo(sorted[i]);
-                unsigned remainingMem = mchInf.memory_size - mchInf.memory_used;
-                if (tskInf.required_memory + VM_MEMORY_OVERHEAD <= remainingMem && Machine_GetCPUType(sorted[i]) == tskInf.required_cpu) {
-                    for (const auto& vm : vms) {
-                        VMInfo_t vmInf = VM_GetInfo(vm);
-                        for (TaskId_t tsk : vmInf.active_tasks) {
-                            if (tsk == task_id) {
-                                VM_Migrate(vm, i);
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (found) {
-                            break;
-                        }
-                    }
+
+    VMId_t vm = VM_per_task[task_id];
+    VMInfo_t vmInf = VM_GetInfo(vm);
+    unsigned reqMem = VM_MEMORY_OVERHEAD;
+
+    for (unsigned i = 0; i < vmInf.active_tasks.size(); ++i) {
+        reqMem += GetTaskInfo(vmInf.active_tasks[i]).required_memory;
+    }
+
+        for (unsigned i = 0; i < sorted.size(); ++i) {
+            MachineInfo_t mchInf = Machine_GetInfo(sorted[i]);
+            unsigned remainingMem = mchInf.memory_size - mchInf.memory_used;
+            unsigned pending_mem = 0;
+
+            for (auto vmP : pendingVMs[sorted[i]]) {
+                pending_mem += VM_MEMORY_OVERHEAD;
+                VMInfo_t mchVMInf = VM_GetInfo(vmP);
+                for (auto tsk : pendingTasks[vmP]) {
+                    pending_mem += GetTaskInfo(tsk).required_memory;
                 }
-                if (found) {
-                    break;
+                for (auto tsk : mchVMInf.active_tasks) {
+                    pending_mem += GetTaskInfo(tsk).required_memory;
                 }
             }
+
+            remainingMem -= pending_mem;
+
+            // Note: Make code safe with VM migration AND consider Machine State!
+            if (reqMem <= remainingMem && Machine_GetCPUType(sorted[i]) == tskInf.required_cpu
+        && !migration[vm] && migrationCooldown[vm] == 0) {
+                SimOutput("Migrating VM in HandleWarning " + to_string(vm) + " to machine " + to_string(sorted[i]), 3);
+                SimOutput("Machine has " + to_string(remainingMem) + " left, while the new VM will take up " + 
+                to_string(reqMem) + " amount of memory.", 3);
+
+                migration[vm] = true;
+                pendingVMs[sorted[i]].push_back(vm);
+                SetTaskPriority(task_id, HIGH_PRIORITY);
+
+                VM_Migrate(vm, sorted[i]);
+        }
+    }
+
 }
 
 // Public interface below
