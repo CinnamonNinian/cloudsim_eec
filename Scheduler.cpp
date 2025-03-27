@@ -375,6 +375,14 @@ void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
                 pendingVMs[sorted[i]].push_back(smallestVM);
                 VM_Migrate(smallestVM, sorted[i]);
                 SetTaskPriority(task_id, HIGH_PRIORITY);
+
+                vector<VMId_t>::iterator itr = find(vms_per_machine[VM_GetInfo(smallestVM).machine_id].begin(), 
+                vms_per_machine[VM_GetInfo(smallestVM).machine_id].end(), smallestVM);
+
+                if (itr != vms_per_machine[VM_GetInfo(smallestVM).machine_id].end()) {
+                    vms_per_machine[VM_GetInfo(smallestVM).machine_id].erase(itr);
+                }
+                
                 break;
             }
         }
@@ -396,18 +404,7 @@ void Scheduler::HandleWarning(Time_t now, TaskId_t task_id) {
         for (unsigned i = 0; i < sorted.size(); ++i) {
             MachineInfo_t mchInf = Machine_GetInfo(sorted[i]);
             unsigned remainingMem = mchInf.memory_size - mchInf.memory_used;
-            unsigned pending_mem = 0;
-
-            for (auto vmP : pendingVMs[sorted[i]]) {
-                pending_mem += VM_MEMORY_OVERHEAD;
-                VMInfo_t mchVMInf = VM_GetInfo(vmP);
-                for (auto tsk : pendingTasks[vmP]) {
-                    pending_mem += GetTaskInfo(tsk).required_memory;
-                }
-                for (auto tsk : mchVMInf.active_tasks) {
-                    pending_mem += GetTaskInfo(tsk).required_memory;
-                }
-            }
+            unsigned pending_mem = CalcPendingMem(pendingVMs[sorted[i]]);
 
             remainingMem -= pending_mem;
 
@@ -421,6 +418,13 @@ void Scheduler::HandleWarning(Time_t now, TaskId_t task_id) {
                 migration[vm] = true;
                 pendingVMs[sorted[i]].push_back(vm);
                 SetTaskPriority(task_id, HIGH_PRIORITY);
+
+                vector<VMId_t>::iterator itr = find(vms_per_machine[vmInf.machine_id].begin(), 
+                vms_per_machine[vmInf.machine_id].end(), vm);
+
+                if (itr != vms_per_machine[vmInf.machine_id].end()) {
+                    vms_per_machine[vmInf.machine_id].erase(itr);
+                }
 
                 VM_Migrate(vm, sorted[i]);
         }
