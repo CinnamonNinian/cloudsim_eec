@@ -284,16 +284,13 @@ void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
                         if (reqMem <= remainingMem && vmInfo.cpu == mchInf.cpu) {
                             pendingVMs[sorted[k]].push_back(vm);
                             migration[sorted[k]] = true;
+
+                            vms_per_machine[sorted[i]].erase(find(vms_per_machine[sorted[i]].begin(), 
+                            vms_per_machine[sorted[i]].end(), vm));
+                            
                             VM_Migrate(vm, sorted[k]);
-                            migrated = true;
                             break;
                         }
-                    }
-                    if (migrated) {
-                        // remove from the list
-                        SimOutput("Removing VM " + to_string(vm) + " from machine " + to_string(sorted[i]), 3);
-                        vms_per_machine[sorted[i]].erase(find(vms_per_machine[sorted[i]].begin(), 
-                        vms_per_machine[sorted[i]].end(), vm));
                     }
                 }
                 
@@ -320,18 +317,7 @@ void Scheduler::HandleWarning(Time_t now, TaskId_t task_id) {
         for (unsigned i = 0; i < sorted.size(); ++i) {
             MachineInfo_t mchInf = Machine_GetInfo(sorted[i]);
             unsigned remainingMem = mchInf.memory_size - mchInf.memory_used;
-            unsigned pending_mem = 0;
-
-            for (auto vmP : pendingVMs[sorted[i]]) {
-                pending_mem += VM_MEMORY_OVERHEAD;
-                VMInfo_t mchVMInf = VM_GetInfo(vmP);
-                for (auto tsk : pendingTasks[vmP]) {
-                    pending_mem += GetTaskInfo(tsk).required_memory;
-                }
-                for (auto tsk : mchVMInf.active_tasks) {
-                    pending_mem += GetTaskInfo(tsk).required_memory;
-                }
-            }
+            unsigned pending_mem = CalcPendingMem(pendingVMs[sorted[i]]);
 
             remainingMem -= pending_mem;
 
@@ -346,8 +332,12 @@ void Scheduler::HandleWarning(Time_t now, TaskId_t task_id) {
                 pendingVMs[sorted[i]].push_back(vm);
                 SetTaskPriority(task_id, HIGH_PRIORITY);
 
-                vms_per_machine[vmInf.machine_id].erase(find(vms_per_machine[vmInf.machine_id].begin(), 
-                vms_per_machine[vmInf.machine_id].end(), vm));
+                vector<VMId_t>::iterator itr = find(vms_per_machine[vmInf.machine_id].begin(), 
+                vms_per_machine[vmInf.machine_id].end(), vm);
+
+                if (itr != vms_per_machine[vmInf.machine_id].end()) {
+                    vms_per_machine[vmInf.machine_id].erase(itr);
+                }
 
                 VM_Migrate(vm, sorted[i]);
         }
