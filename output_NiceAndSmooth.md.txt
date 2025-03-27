@@ -1,0 +1,479 @@
+Init(): About to read input file
+ReadMachineClass(): Reading machine descriptor
+ReadMachineClass(): Reading machine descriptor
+ReadTaskClass(): Reading task descriptor
+ReadTaskClass(): Task 0 with 806465000 instructions added at 62073
+ReadTaskClass(): Task 1 with 1038916000 instructions added at 333607
+ReadTaskClass(): Task 2 with 667543000 instructions added at 637358
+ReadTaskClass(): Task 3 with 1181041000 instructions added at 722677
+ReadTaskClass(): Task 4 with 1195136000 instructions added at 759499
+ReadTaskClass(): Task 5 with 1189561000 instructions added at 787982
+ReadTaskClass(): Task 6 with 1024987000 instructions added at 902269
+ReadTaskClass(): Task 7 with 920733000 instructions added at 1235725
+ReadTaskClass(): Task 8 with 872400000 instructions added at 1244393
+ReadTaskClass(): Task 9 with 1263468000 instructions added at 1310280
+ReadTaskClass(): Task 10 with 728163000 instructions added at 1325910
+ReadTaskClass(): Task 11 with 878112000 instructions added at 1456501
+ReadTaskClass(): Task 12 with 953101000 instructions added at 1598442
+ReadTaskClass(): Task 13 with 660095000 instructions added at 1711749
+ReadTaskClass(): Task 14 with 1082948000 instructions added at 2038794
+ReadTaskClass(): Task 15 with 989104000 instructions added at 2368172
+ReadTaskClass(): Task 16 with 767906000 instructions added at 2392064
+ReadTaskClass(): Task 17 with 1137474000 instructions added at 2412436
+ReadTaskClass(): Task 18 with 1344031000 instructions added at 2486391
+ReadTaskClass(): Task 19 with 902761000 instructions added at 2489829
+ReadTaskClass(): Task 20 with 1238740000 instructions added at 2511912
+ReadTaskClass(): Task 21 with 898259000 instructions added at 2522168
+ReadTaskClass(): Task 22 with 1018916000 instructions added at 2936168
+ReadTaskClass(): Task 23 with 1103456000 instructions added at 2994099
+ReadTaskClass(): Task 24 with 1240054000 instructions added at 3497128
+ReadTaskClass(): Task 25 with 1092221000 instructions added at 3599522
+ReadTaskClass(): Task 26 with 830982000 instructions added at 3740240
+ReadTaskClass(): Task 27 with 1219711000 instructions added at 3901055
+ReadTaskClass(): Task 28 with 1243752000 instructions added at 3908948
+ReadTaskClass(): Task 29 with 1162925000 instructions added at 4020679
+ReadTaskClass(): Task 30 with 1046119000 instructions added at 4106066
+ReadTaskClass(): Task 31 with 1322511000 instructions added at 4223782
+ReadTaskClass(): Task 32 with 1157847000 instructions added at 4523518
+ReadTaskClass(): Task 33 with 1029450000 instructions added at 4599548
+ReadTaskClass(): Task 34 with 751639000 instructions added at 5371883
+ReadTaskClass(): Task 35 with 1131851000 instructions added at 5538924
+ReadTaskClass(): Task 36 with 732736000 instructions added at 5541152
+ReadTaskClass(): Task 37 with 1024111000 instructions added at 5733636
+ReadTaskClass(): Task 38 with 712285000 instructions added at 5803747
+ReadTaskClass(): Task 39 with 875563000 instructions added at 5989314
+ReadTaskClass(): Task 40 with 1286247000 instructions added at 6210372
+ReadTaskClass(): Task 41 with 869742000 instructions added at 6558505
+ReadTaskClass(): Task 42 with 665529000 instructions added at 6667675
+ReadTaskClass(): Task 43 with 1103297000 instructions added at 6886860
+ReadTaskClass(): Task 44 with 670590000 instructions added at 6948783
+ReadTaskClass(): Task 45 with 1253176000 instructions added at 8002022
+ReadTaskClass(): Task 46 with 1283716000 instructions added at 8045900
+ReadTaskClass(): Task 47 with 1221046000 instructions added at 8155198
+ReadTaskClass(): Task 48 with 961438000 instructions added at 8739283
+ReadTaskClass(): Task 49 with 812075000 instructions added at 9005071
+ReadTaskClass(): Task 50 with 994357000 instructions added at 9342398
+ReadTaskClass(): Task 51 with 1121216000 instructions added at 9492703
+ReadTaskClass(): Task 52 with 1139406000 instructions added at 9851054
+ReadTaskClass(): Task 53 with 1174939000 instructions added at 10212564
+ReadTaskClass(): Task 54 with 740717000 instructions added at 10305006
+ReadTaskClass(): Task 55 with 775219000 instructions added at 10517694
+ReadTaskClass(): Task 56 with 1098046000 instructions added at 10814110
+ReadTaskClass(): Task 57 with 1145378000 instructions added at 10945148
+ReadTaskClass(): Task 58 with 1036756000 instructions added at 11200584
+ReadTaskClass(): Task 59 with 896997000 instructions added at 11478891
+ReadTaskClass(): Task 60 with 985579000 instructions added at 11589869
+ReadTaskClass(): Task 61 with 703102000 instructions added at 11596992
+ReadTaskClass(): Task 62 with 1195517000 instructions added at 11746951
+ReadTaskClass(): Task 63 with 1244740000 instructions added at 11916051
+ReadTaskClass(): Task 64 with 1308719000 instructions added at 12255442
+ReadTaskClass(): Task 65 with 1087379000 instructions added at 12390610
+ReadTaskClass(): Task 66 with 1137010000 instructions added at 12585049
+ReadTaskClass(): Task 67 with 1247270000 instructions added at 12684383
+ReadTaskClass(): Task 68 with 998313000 instructions added at 12832373
+ReadTaskClass(): Task 69 with 855906000 instructions added at 12965383
+ReadTaskClass(): Task 70 with 1142686000 instructions added at 13409106
+ReadTaskClass(): Task 71 with 782076000 instructions added at 13680094
+ReadTaskClass(): Task 72 with 1010376000 instructions added at 13780656
+ReadTaskClass(): Task 73 with 662420000 instructions added at 13835187
+ReadTaskClass(): Task 74 with 665901000 instructions added at 13941308
+ReadTaskClass(): Task 75 with 1331038000 instructions added at 14017406
+ReadTaskClass(): Task 76 with 699451000 instructions added at 14106444
+ReadTaskClass(): Task 77 with 730202000 instructions added at 14144374
+ReadTaskClass(): Task 78 with 1061682000 instructions added at 14182783
+ReadTaskClass(): Task 79 with 1265431000 instructions added at 14596555
+ReadTaskClass(): Task 80 with 1219069000 instructions added at 14847444
+ReadTaskClass(): Task 81 with 1085160000 instructions added at 15929208
+Init(): Found 82 tasks
+Init(): Found 24 machines
+Init(): About to initialize scheduler
+Scheduler::Init(): Total number of machines is 24
+Scheduler::Init(): Initializing scheduler
+Number of tasks: 82
+Init(): Starting simulation
+Simulate(): There are 83 events in the simulator
+Attempting to find a machine for new task with id 0 at time 62073
+Found machine with id 12 with state 0 at time 62073
+Initializing VM with id 0
+Attached VM 0 to Machine 12
+Deciding to place Task with id 0 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 0 placed successfully on machine 12
+Attempting to find a machine for new task with id 1 at time 333607
+Found machine with id 1 with state 0 at time 333607
+Initializing VM with id 1
+Attached VM 1 to Machine 1
+Deciding to place Task with id 1 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 1 placed successfully on machine 1
+Attempting to find a machine for new task with id 2 at time 637358
+Found machine with id 11 with state 0 at time 637358
+Initializing VM with id 2
+Attached VM 2 to Machine 11
+Deciding to place Task with id 2 on machine 11. Migration of VM == 0. State change of machine == 0
+Task with id 2 placed successfully on machine 11
+Attempting to find a machine for new task with id 3 at time 722677
+Found machine with id 22 with state 0 at time 722677
+Initializing VM with id 3
+Attached VM 3 to Machine 22
+Deciding to place Task with id 3 on machine 22. Migration of VM == 0. State change of machine == 0
+Task with id 3 placed successfully on machine 22
+Attempting to find a machine for new task with id 4 at time 759499
+Found machine with id 10 with state 0 at time 759499
+Initializing VM with id 4
+Attached VM 4 to Machine 10
+Deciding to place Task with id 4 on machine 10. Migration of VM == 0. State change of machine == 0
+Task with id 4 placed successfully on machine 10
+Attempting to find a machine for new task with id 5 at time 787982
+Found machine with id 21 with state 0 at time 787982
+Initializing VM with id 5
+Attached VM 5 to Machine 21
+Deciding to place Task with id 5 on machine 21. Migration of VM == 0. State change of machine == 0
+Task with id 5 placed successfully on machine 21
+Attempting to find a machine for new task with id 6 at time 902269
+Found machine with id 9 with state 0 at time 902269
+Initializing VM with id 6
+Attached VM 6 to Machine 9
+Deciding to place Task with id 6 on machine 9. Migration of VM == 0. State change of machine == 0
+Task with id 6 placed successfully on machine 9
+Attempting to find a machine for new task with id 7 at time 1235725
+Found machine with id 20 with state 0 at time 1235725
+Initializing VM with id 7
+Attached VM 7 to Machine 20
+Deciding to place Task with id 7 on machine 20. Migration of VM == 0. State change of machine == 0
+Task with id 7 placed successfully on machine 20
+Attempting to find a machine for new task with id 8 at time 1244393
+Found machine with id 8 with state 0 at time 1244393
+Initializing VM with id 8
+Attached VM 8 to Machine 8
+Deciding to place Task with id 8 on machine 8. Migration of VM == 0. State change of machine == 0
+Task with id 8 placed successfully on machine 8
+Attempting to find a machine for new task with id 9 at time 1310280
+Found machine with id 23 with state 0 at time 1310280
+Initializing VM with id 9
+Attached VM 9 to Machine 23
+Deciding to place Task with id 9 on machine 23. Migration of VM == 0. State change of machine == 0
+Task with id 9 placed successfully on machine 23
+Attempting to find a machine for new task with id 10 at time 1325910
+Found machine with id 0 with state 0 at time 1325910
+Initializing VM with id 10
+Attached VM 10 to Machine 0
+Deciding to place Task with id 10 on machine 0. Migration of VM == 0. State change of machine == 0
+Task with id 10 placed successfully on machine 0
+Attempting to find a machine for new task with id 11 at time 1456501
+Found machine with id 19 with state 0 at time 1456501
+Initializing VM with id 11
+Attached VM 11 to Machine 19
+Deciding to place Task with id 11 on machine 19. Migration of VM == 0. State change of machine == 0
+Task with id 11 placed successfully on machine 19
+Attempting to find a machine for new task with id 12 at time 1598442
+Found machine with id 2 with state 0 at time 1598442
+Initializing VM with id 12
+Attached VM 12 to Machine 2
+Deciding to place Task with id 12 on machine 2. Migration of VM == 0. State change of machine == 0
+Task with id 12 placed successfully on machine 2
+Attempting to find a machine for new task with id 13 at time 1711749
+Found machine with id 3 with state 0 at time 1711749
+Initializing VM with id 13
+Attached VM 13 to Machine 3
+Deciding to place Task with id 13 on machine 3. Migration of VM == 0. State change of machine == 0
+Task with id 13 placed successfully on machine 3
+Attempting to find a machine for new task with id 14 at time 2038794
+Found machine with id 4 with state 0 at time 2038794
+Initializing VM with id 14
+Attached VM 14 to Machine 4
+Deciding to place Task with id 14 on machine 4. Migration of VM == 0. State change of machine == 0
+Task with id 14 placed successfully on machine 4
+Attempting to find a machine for new task with id 15 at time 2368172
+Found machine with id 5 with state 0 at time 2368172
+Initializing VM with id 15
+Attached VM 15 to Machine 5
+Deciding to place Task with id 15 on machine 5. Migration of VM == 0. State change of machine == 0
+Task with id 15 placed successfully on machine 5
+Attempting to find a machine for new task with id 16 at time 2392064
+Found machine with id 6 with state 0 at time 2392064
+Initializing VM with id 16
+Attached VM 16 to Machine 6
+Deciding to place Task with id 16 on machine 6. Migration of VM == 0. State change of machine == 0
+Task with id 16 placed successfully on machine 6
+Attempting to find a machine for new task with id 17 at time 2412436
+Found machine with id 18 with state 0 at time 2412436
+Initializing VM with id 17
+Attached VM 17 to Machine 18
+Deciding to place Task with id 17 on machine 18. Migration of VM == 0. State change of machine == 0
+Task with id 17 placed successfully on machine 18
+Attempting to find a machine for new task with id 18 at time 2486391
+Found machine with id 17 with state 0 at time 2486391
+Initializing VM with id 18
+Attached VM 18 to Machine 17
+Deciding to place Task with id 18 on machine 17. Migration of VM == 0. State change of machine == 0
+Task with id 18 placed successfully on machine 17
+Attempting to find a machine for new task with id 19 at time 2489829
+Found machine with id 16 with state 0 at time 2489829
+Initializing VM with id 19
+Attached VM 19 to Machine 16
+Deciding to place Task with id 19 on machine 16. Migration of VM == 0. State change of machine == 0
+Task with id 19 placed successfully on machine 16
+Attempting to find a machine for new task with id 20 at time 2511912
+Found machine with id 15 with state 0 at time 2511912
+Initializing VM with id 20
+Attached VM 20 to Machine 15
+Deciding to place Task with id 20 on machine 15. Migration of VM == 0. State change of machine == 0
+Task with id 20 placed successfully on machine 15
+Attempting to find a machine for new task with id 21 at time 2522168
+Found machine with id 14 with state 0 at time 2522168
+Initializing VM with id 21
+Attached VM 21 to Machine 14
+Deciding to place Task with id 21 on machine 14. Migration of VM == 0. State change of machine == 0
+Task with id 21 placed successfully on machine 14
+Attempting to find a machine for new task with id 22 at time 2936168
+Found machine with id 7 with state 0 at time 2936168
+Initializing VM with id 22
+Attached VM 22 to Machine 7
+Deciding to place Task with id 22 on machine 7. Migration of VM == 0. State change of machine == 0
+Task with id 22 placed successfully on machine 7
+Attempting to find a machine for new task with id 23 at time 2994099
+Found machine with id 13 with state 0 at time 2994099
+Initializing VM with id 23
+Attached VM 23 to Machine 13
+Deciding to place Task with id 23 on machine 13. Migration of VM == 0. State change of machine == 0
+Task with id 23 placed successfully on machine 13
+Attempting to find a machine for new task with id 24 at time 3497128
+Found machine with id 12 with state 0 at time 3497128
+Deciding to place Task with id 24 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 24 placed successfully on machine 12
+Attempting to find a machine for new task with id 25 at time 3599522
+Found machine with id 1 with state 0 at time 3599522
+Deciding to place Task with id 25 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 25 placed successfully on machine 1
+Attempting to find a machine for new task with id 26 at time 3740240
+Found machine with id 11 with state 0 at time 3740240
+Deciding to place Task with id 26 on machine 11. Migration of VM == 0. State change of machine == 0
+Task with id 26 placed successfully on machine 11
+Attempting to find a machine for new task with id 27 at time 3901055
+Found machine with id 22 with state 0 at time 3901055
+Deciding to place Task with id 27 on machine 22. Migration of VM == 0. State change of machine == 0
+Task with id 27 placed successfully on machine 22
+Attempting to find a machine for new task with id 28 at time 3908948
+Found machine with id 23 with state 0 at time 3908948
+Deciding to place Task with id 28 on machine 23. Migration of VM == 0. State change of machine == 0
+Task with id 28 placed successfully on machine 23
+Attempting to find a machine for new task with id 29 at time 4020679
+Found machine with id 1 with state 0 at time 4020679
+Deciding to place Task with id 29 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 29 placed successfully on machine 1
+Attempting to find a machine for new task with id 30 at time 4106066
+Found machine with id 11 with state 0 at time 4106066
+Deciding to place Task with id 30 on machine 11. Migration of VM == 0. State change of machine == 0
+Task with id 30 placed successfully on machine 11
+Attempting to find a machine for new task with id 31 at time 4223782
+Found machine with id 0 with state 0 at time 4223782
+Deciding to place Task with id 31 on machine 0. Migration of VM == 0. State change of machine == 0
+Task with id 31 placed successfully on machine 0
+Attempting to find a machine for new task with id 32 at time 4523518
+Found machine with id 1 with state 0 at time 4523518
+Deciding to place Task with id 32 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 32 placed successfully on machine 1
+Attempting to find a machine for new task with id 33 at time 4599548
+Found machine with id 11 with state 0 at time 4599548
+Deciding to place Task with id 33 on machine 11. Migration of VM == 0. State change of machine == 0
+Task with id 33 placed successfully on machine 11
+Attempting to find a machine for new task with id 34 at time 5371883
+Found machine with id 12 with state 0 at time 5371883
+Deciding to place Task with id 34 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 34 placed successfully on machine 12
+Attempting to find a machine for new task with id 35 at time 5538924
+Found machine with id 1 with state 0 at time 5538924
+Deciding to place Task with id 35 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 35 placed successfully on machine 1
+Attempting to find a machine for new task with id 36 at time 5541152
+Found machine with id 11 with state 0 at time 5541152
+Deciding to place Task with id 36 on machine 11. Migration of VM == 0. State change of machine == 0
+Task with id 36 placed successfully on machine 11
+Attempting to find a machine for new task with id 37 at time 5733636
+Found machine with id 12 with state 0 at time 5733636
+Deciding to place Task with id 37 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 37 placed successfully on machine 12
+Attempting to find a machine for new task with id 38 at time 5803747
+Found machine with id 11 with state 0 at time 5803747
+Deciding to place Task with id 38 on machine 11. Migration of VM == 0. State change of machine == 0
+Task with id 38 placed successfully on machine 11
+Attempting to find a machine for new task with id 39 at time 5989314
+Found machine with id 1 with state 0 at time 5989314
+Deciding to place Task with id 39 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 39 placed successfully on machine 1
+Attempting to find a machine for new task with id 40 at time 6210372
+Found machine with id 12 with state 0 at time 6210372
+Deciding to place Task with id 40 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 40 placed successfully on machine 12
+Attempting to find a machine for new task with id 41 at time 6558505
+Found machine with id 1 with state 0 at time 6558505
+Deciding to place Task with id 41 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 41 placed successfully on machine 1
+Attempting to find a machine for new task with id 42 at time 6667675
+Found machine with id 12 with state 0 at time 6667675
+Deciding to place Task with id 42 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 42 placed successfully on machine 12
+Attempting to find a machine for new task with id 43 at time 6886860
+Found machine with id 1 with state 0 at time 6886860
+Deciding to place Task with id 43 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 43 placed successfully on machine 1
+Attempting to find a machine for new task with id 44 at time 6948783
+Found machine with id 12 with state 0 at time 6948783
+Deciding to place Task with id 44 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 44 placed successfully on machine 12
+Attempting to find a machine for new task with id 45 at time 8002022
+Found machine with id 12 with state 0 at time 8002022
+Deciding to place Task with id 45 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 45 placed successfully on machine 12
+Attempting to find a machine for new task with id 46 at time 8045900
+Found machine with id 1 with state 0 at time 8045900
+Deciding to place Task with id 46 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 46 placed successfully on machine 1
+Attempting to find a machine for new task with id 47 at time 8155198
+Found machine with id 11 with state 0 at time 8155198
+Deciding to place Task with id 47 on machine 11. Migration of VM == 0. State change of machine == 0
+Task with id 47 placed successfully on machine 11
+Attempting to find a machine for new task with id 48 at time 8739283
+Found machine with id 12 with state 0 at time 8739283
+Deciding to place Task with id 48 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 48 placed successfully on machine 12
+Attempting to find a machine for new task with id 49 at time 9005071
+Found machine with id 1 with state 0 at time 9005071
+Deciding to place Task with id 49 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 49 placed successfully on machine 1
+Attempting to find a machine for new task with id 50 at time 9342398
+Found machine with id 12 with state 0 at time 9342398
+Deciding to place Task with id 50 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 50 placed successfully on machine 12
+Attempting to find a machine for new task with id 51 at time 9492703
+Found machine with id 1 with state 0 at time 9492703
+Deciding to place Task with id 51 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 51 placed successfully on machine 1
+Attempting to find a machine for new task with id 52 at time 9851054
+Found machine with id 12 with state 0 at time 9851054
+Deciding to place Task with id 52 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 52 placed successfully on machine 12
+Attempting to find a machine for new task with id 53 at time 10212564
+Found machine with id 1 with state 0 at time 10212564
+Deciding to place Task with id 53 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 53 placed successfully on machine 1
+Attempting to find a machine for new task with id 54 at time 10305006
+Found machine with id 12 with state 0 at time 10305006
+Deciding to place Task with id 54 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 54 placed successfully on machine 12
+Attempting to find a machine for new task with id 55 at time 10517694
+Found machine with id 11 with state 0 at time 10517694
+Deciding to place Task with id 55 on machine 11. Migration of VM == 0. State change of machine == 0
+Task with id 55 placed successfully on machine 11
+Attempting to find a machine for new task with id 56 at time 10814110
+Found machine with id 12 with state 0 at time 10814110
+Deciding to place Task with id 56 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 56 placed successfully on machine 12
+Attempting to find a machine for new task with id 57 at time 10945148
+Found machine with id 1 with state 0 at time 10945148
+Deciding to place Task with id 57 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 57 placed successfully on machine 1
+Attempting to find a machine for new task with id 58 at time 11200584
+Found machine with id 12 with state 0 at time 11200584
+Deciding to place Task with id 58 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 58 placed successfully on machine 12
+Attempting to find a machine for new task with id 59 at time 11478891
+Found machine with id 1 with state 0 at time 11478891
+Deciding to place Task with id 59 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 59 placed successfully on machine 1
+Attempting to find a machine for new task with id 60 at time 11589869
+Found machine with id 12 with state 0 at time 11589869
+Deciding to place Task with id 60 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 60 placed successfully on machine 12
+Attempting to find a machine for new task with id 61 at time 11596992
+Found machine with id 11 with state 0 at time 11596992
+Deciding to place Task with id 61 on machine 11. Migration of VM == 0. State change of machine == 0
+Task with id 61 placed successfully on machine 11
+Attempting to find a machine for new task with id 62 at time 11746951
+Found machine with id 22 with state 0 at time 11746951
+Deciding to place Task with id 62 on machine 22. Migration of VM == 0. State change of machine == 0
+Task with id 62 placed successfully on machine 22
+Attempting to find a machine for new task with id 63 at time 11916051
+Found machine with id 1 with state 0 at time 11916051
+Deciding to place Task with id 63 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 63 placed successfully on machine 1
+Attempting to find a machine for new task with id 64 at time 12255442
+Found machine with id 12 with state 0 at time 12255442
+Deciding to place Task with id 64 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 64 placed successfully on machine 12
+Attempting to find a machine for new task with id 65 at time 12390610
+Found machine with id 1 with state 0 at time 12390610
+Deciding to place Task with id 65 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 65 placed successfully on machine 1
+Attempting to find a machine for new task with id 66 at time 12585049
+Found machine with id 11 with state 0 at time 12585049
+Deciding to place Task with id 66 on machine 11. Migration of VM == 0. State change of machine == 0
+Task with id 66 placed successfully on machine 11
+Attempting to find a machine for new task with id 67 at time 12684383
+Found machine with id 22 with state 0 at time 12684383
+Deciding to place Task with id 67 on machine 22. Migration of VM == 0. State change of machine == 0
+Task with id 67 placed successfully on machine 22
+Attempting to find a machine for new task with id 68 at time 12832373
+Found machine with id 12 with state 0 at time 12832373
+Deciding to place Task with id 68 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 68 placed successfully on machine 12
+Attempting to find a machine for new task with id 69 at time 12965383
+Found machine with id 1 with state 0 at time 12965383
+Deciding to place Task with id 69 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 69 placed successfully on machine 1
+Attempting to find a machine for new task with id 70 at time 13409106
+Found machine with id 12 with state 0 at time 13409106
+Deciding to place Task with id 70 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 70 placed successfully on machine 12
+Attempting to find a machine for new task with id 71 at time 13680094
+Found machine with id 1 with state 0 at time 13680094
+Deciding to place Task with id 71 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 71 placed successfully on machine 1
+Attempting to find a machine for new task with id 72 at time 13780656
+Found machine with id 11 with state 0 at time 13780656
+Deciding to place Task with id 72 on machine 11. Migration of VM == 0. State change of machine == 0
+Task with id 72 placed successfully on machine 11
+Attempting to find a machine for new task with id 73 at time 13835187
+Found machine with id 12 with state 0 at time 13835187
+Deciding to place Task with id 73 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 73 placed successfully on machine 12
+Attempting to find a machine for new task with id 74 at time 13941308
+Found machine with id 1 with state 0 at time 13941308
+Deciding to place Task with id 74 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 74 placed successfully on machine 1
+Attempting to find a machine for new task with id 75 at time 14017406
+Found machine with id 22 with state 0 at time 14017406
+Deciding to place Task with id 75 on machine 22. Migration of VM == 0. State change of machine == 0
+Task with id 75 placed successfully on machine 22
+Attempting to find a machine for new task with id 76 at time 14106444
+Found machine with id 12 with state 0 at time 14106444
+Deciding to place Task with id 76 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 76 placed successfully on machine 12
+Attempting to find a machine for new task with id 77 at time 14144374
+Found machine with id 11 with state 0 at time 14144374
+Deciding to place Task with id 77 on machine 11. Migration of VM == 0. State change of machine == 0
+Task with id 77 placed successfully on machine 11
+Attempting to find a machine for new task with id 78 at time 14182783
+Found machine with id 1 with state 0 at time 14182783
+Deciding to place Task with id 78 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 78 placed successfully on machine 1
+Attempting to find a machine for new task with id 79 at time 14596555
+Found machine with id 12 with state 0 at time 14596555
+Deciding to place Task with id 79 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 79 placed successfully on machine 12
+Attempting to find a machine for new task with id 80 at time 14847444
+Found machine with id 1 with state 0 at time 14847444
+Deciding to place Task with id 80 on machine 1. Migration of VM == 0. State change of machine == 0
+Task with id 80 placed successfully on machine 1
+Attempting to find a machine for new task with id 81 at time 15929208
+Found machine with id 12 with state 0 at time 15929208
+Deciding to place Task with id 81 on machine 12. Migration of VM == 0. State change of machine == 0
+Task with id 81 placed successfully on machine 12
+SLA violation report
+SLA0: 0%
+SLA1: 0%
+SLA2: 0%
+Total Energy 0.0121056 KW-Hour
+Simulation run finished in 16.32 seconds
+SimulationComplete(): Initiating shutdown...
+SimulationComplete(): Finished!
+SimulationComplete(): Time is 16320000
