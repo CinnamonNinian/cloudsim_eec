@@ -212,6 +212,8 @@ pair<MachineId_t, VMId_t> Scheduler::FindMachine(bool prefer_gpu, unsigned int t
     for (unsigned int i = 0; i < machines.size(); i++) {
         MachineInfo_t info = Machine_GetInfo(machines[i]);
         unsigned mem_left = info.memory_size - info.memory_used;
+        unsigned pending_mem = CalcPendingMem(pendingVMs[machines[i]]);
+        mem_left -= pending_mem;
         if (Machine_GetCPUType(i) == cpu && mem_left >= task_mem) {
             return {machines[i], -1};
         }
@@ -265,9 +267,10 @@ void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
     for (unsigned i = sorted.size() - 1; i < sorted.size() && Machine_GetInfo(i).memory_used != 0; --i) {
                 // I'm just purposely overflowing i because I know for a fact we are NOT Having integer_max machines
                 // MachineInfo_t inf = Machine_GetInfo(sorted[i]);
-                for (const auto& vm : vms_per_machine[sorted[i]]) {
+                for (auto& vm : vms_per_machine[sorted[i]]) {
                     VMInfo_t vmInfo = VM_GetInfo(vm);
                     unsigned reqMem = VM_MEMORY_OVERHEAD;
+                    bool migrated = false;
                     for (unsigned j = 0; j < vmInfo.active_tasks.size(); ++j) {
                         TaskInfo_t tsk = GetTaskInfo(vmInfo.active_tasks[j]);
                         reqMem += tsk.required_memory;
@@ -282,8 +285,15 @@ void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
                             pendingVMs[sorted[k]].push_back(vm);
                             migration[sorted[k]] = true;
                             VM_Migrate(vm, sorted[k]);
+                            migrated = true;
                             break;
                         }
+                    }
+                    if (migrated) {
+                        // remove from the list
+                        SimOutput("Removing VM " + to_string(vm) + " from machine " + to_string(sorted[i]), 3);
+                        vms_per_machine[sorted[i]].erase(find(vms_per_machine[sorted[i]].begin(), 
+                        vms_per_machine[sorted[i]].end(), vm));
                     }
                 }
                 
@@ -335,6 +345,9 @@ void Scheduler::HandleWarning(Time_t now, TaskId_t task_id) {
                 migration[vm] = true;
                 pendingVMs[sorted[i]].push_back(vm);
                 SetTaskPriority(task_id, HIGH_PRIORITY);
+
+                vms_per_machine[vmInf.machine_id].erase(find(vms_per_machine[vmInf.machine_id].begin(), 
+                vms_per_machine[vmInf.machine_id].end(), vm));
 
                 VM_Migrate(vm, sorted[i]);
         }
