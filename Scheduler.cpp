@@ -9,6 +9,8 @@
 
 #include "Scheduler.hpp"
 
+#define STATE_CHANGE_THRESHOLD 100000000
+
 // static bool migrating = false;
 static unsigned active_machines;
 static map<MachineId_t, vector<VMId_t>> vms_per_machine;
@@ -16,11 +18,18 @@ static map<MachineId_t, vector<VMId_t>> vms_per_machine;
 static map<TaskId_t, VMId_t> VM_per_task;
 
 static map<VMId_t, bool> migration;
+static map<MachineId_t, bool> experiencingMigration;
 static map<MachineId_t, bool> stateChange;
 static map<VMId_t, vector<TaskId_t>> pendingTasks;
 static map<MachineId_t, vector<VMId_t>> pendingVMs;
 
+static map<MachineId_t, Time_t> last_task;
+static map<MachineId_t, unsigned> last_memory_used;
+
 static map<VMId_t, unsigned> migrationCooldown;
+
+static map<MachineId_t, bool> migrationQueued;
+static map<MachineId_t, VMId_t> pendingMigration; // only one VM can migrate at a time
 
 static vector<MachineId_t> gpuMachines;
 
@@ -63,6 +72,9 @@ void Scheduler::Init() {
         if (Machine_GetInfo(machines[i]).gpus) {
             gpuMachines.push_back(machines[i]);
         }
+        experiencingMigration[machines[i]] = false;
+        last_memory_used[machines[i]] = 0;
+        last_task[machines[i]] = 0;
         stateChange[machines[i]] = false;
     }
 }
@@ -78,8 +90,12 @@ void Scheduler::MigrationComplete(Time_t time, VMId_t vm_id) {
     }
 
     vector<VMId_t>::iterator itr = find(pendingVMs[vmInf.machine_id].begin(), pendingVMs[vmInf.machine_id].end(), vm_id);
-    pendingVMs[vmInf.machine_id].erase(itr);
+    if (itr != pendingVMs[vmInf.machine_id].end()) {
+        pendingVMs[vmInf.machine_id].erase(itr);
+    }
     MachineInfo_t mchInf = Machine_GetInfo(vmInf.machine_id);
+
+    experiencingMigration[VM_GetInfo(vm_id).machine_id] = false;
 
     SimOutput("Machine " + to_string(vmInf.machine_id) + " has " + 
     to_string(mchInf.memory_size - mchInf.memory_used) + " left.", 3);
@@ -93,10 +109,23 @@ void Scheduler::HandleStateChange(Time_t time, MachineId_t machine_id) {
     " at time " + to_string(time) + " where s-state is now " + to_string(Machine_GetInfo(machine_id).s_state), 3);
     stateChange[machine_id] = false;
     if (Machine_GetInfo(machine_id).s_state == S0) {
+        if (pendingMigration[machine_id] && !experiencingMigration[machine_id]) {
+            experiencingMigration[machine_id] = true;
+            vms_per_machine[machine_id].push_back(pendingMigration[machine_id]);
+            VM_Migrate(pendingMigration[machine_id], machine_id);
+            pendingMigration[machine_id] = vms.size();
+        }
+        
         for (unsigned i = 0; i < pendingVMs[machine_id].size(); ++i) {
-            VM_Attach(pendingVMs[machine_id][i], machine_id);
+
+            VMId_t vm_id = pendingVMs[machine_id][i];
+            VM_Attach(vm_id, machine_id);
+            vms_per_machine[machine_id].push_back(vm_id);
+
             for (unsigned j = 0; j < pendingTasks[pendingVMs[machine_id][i]].size(); ++j) {
-                VM_AddTask(pendingVMs[machine_id][i], pendingTasks[pendingVMs[machine_id][i]][j], HIGH_PRIORITY);
+                SimOutput("Clearing pending tasks for VM id: " + to_string(vm_id) + " at time " + to_string(time), 3);
+                TaskId_t tskId = pendingTasks[pendingVMs[machine_id][i]][j];
+                VM_AddTask(vm_id, tskId, HIGH_PRIORITY);
             }
             pendingTasks[pendingVMs[machine_id][i]].clear();
         }
@@ -104,7 +133,9 @@ void Scheduler::HandleStateChange(Time_t time, MachineId_t machine_id) {
         SimOutput("All desired VMs and tasks added to the machine : " + to_string(machine_id), 3);
         
         pendingVMs[machine_id].clear();
-    }  
+    } else {
+        SimOutput("No work to be done for this machine as it already at S5.", 3);
+    }
 }
 
 void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
@@ -156,13 +187,13 @@ void Scheduler::NewTask(Time_t now, TaskId_t task_id) {
         vm_id = VM_Create(vm_type, cpu);
         SimOutput("Initializing VM with id " + to_string(vm_id), 3);
 
-        if (Machine_GetInfo(machine_id).s_state == S3 || stateChange[machine_id]) {
+        if (Machine_GetInfo(machine_id).s_state != S0 || stateChange[machine_id]) {
             pendingVMs[machine_id].push_back(vm_id);
             pendingTasks[vm_id].push_back(task_id);
             SimOutput("VM " + to_string(vm_id) + " waits to be added to Machine " + to_string(machine_id), 3);
             taskMustWait = true;
-            // stateChange[machine_id] = true;
-            // Machine_SetState(machine_id, S0);
+            stateChange[machine_id] = true;
+            Machine_SetState(machine_id, S0);
         } else {
             VM_Attach(vm_id, machine_id);
             SimOutput("Attached VM " + to_string(vm_id) + " to Machine " + to_string(machine_id), 3);
@@ -238,6 +269,59 @@ void Scheduler::PeriodicCheck(Time_t now) {
     //     }
     // }
 
+    for (unsigned i = 0; i < active_machines; ++i) {
+        MachineId_t machine_id = machines[i];
+        MachineInfo_t info = Machine_GetInfo(machine_id);
+
+        Time_t last_task_time = last_task[machine_id];
+
+        unsigned current_mem = info.memory_used;
+        unsigned previous_mem = last_memory_used[machine_id];
+
+        if (now - last_task_time >= STATE_CHANGE_THRESHOLD) {
+
+            /*
+                S-State Change
+            */
+
+            cout << "cur mem: " << current_mem << endl;
+            cout << "previous mem: " << previous_mem << endl;
+           MachineState_t s_state = info.s_state;
+           if (current_mem == 0 && previous_mem == 0) {
+                s_state = s_state != S5 ? MachineState_t(s_state + 1) : S5;
+           } else {
+                s_state = s_state != S0 ? MachineState_t(s_state - 1) : S0;
+           }
+
+           if (s_state != info.s_state) {
+            stateChange[machine_id] = true;
+            Machine_SetState(machine_id, s_state);
+            SimOutput("PeriodicCheck(): Updated s_state of machine " + to_string(machine_id) +
+                    " to " + to_string(s_state) + " at time " + to_string(now), 3);
+            }
+
+            /*
+                P-State Change
+            */
+            CPUPerformance_t p_state = info.p_state;
+
+            if (current_mem > previous_mem) {
+                p_state = p_state != P0 ? CPUPerformance_t(p_state - 1) : P0;
+            } else if (current_mem < previous_mem) {
+                p_state = p_state != P3 ? CPUPerformance_t(p_state + 1) : P3;
+            }
+
+            if (p_state != info.p_state) {
+                Machine_SetCorePerformance(machine_id, 0, p_state);
+                SimOutput("PeriodicCheck(): Updated p_state of machine " + to_string(machine_id) +
+                        " to " + to_string(p_state) + " at time " + to_string(now), 3);
+            }
+
+            last_task[machine_id] = now;
+            last_memory_used[machine_id] = current_mem;
+        }
+    }
+
     for (auto a : migrationCooldown) {
         migrationCooldown[a.first] -= 20;
     }
@@ -282,15 +366,23 @@ void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
                         unsigned pendingMem = CalcPendingMem(pendingVMs[sorted[k]]);
                         remainingMem -= pendingMem;
                         if (reqMem <= remainingMem && vmInfo.cpu == mchInf.cpu) {
-                            pendingVMs[sorted[k]].push_back(vm);
-                            migration[sorted[k]] = true;
+                            vector<VMId_t>::iterator itr = find(vms_per_machine[sorted[i]].begin(), 
+                            vms_per_machine[sorted[i]].end(), vm);
 
-                            vms_per_machine[sorted[i]].erase(find(vms_per_machine[sorted[i]].begin(), 
-                            vms_per_machine[sorted[i]].end(), vm));
-                            
-                            VM_Migrate(vm, sorted[k]);
-                            break;
-                        }
+                            if (itr != vms_per_machine[sorted[i]].end()) {
+                                vms_per_machine[sorted[i]].erase(itr);
+                            }
+
+                            if (mchInf.s_state != S5) {
+                                migrationQueued[sorted[k]] = true;   
+                                pendingMigration[sorted[k]] = vm;
+                            } else {
+                                pendingVMs[sorted[k]].push_back(vm);
+                                migration[sorted[k]] = true;
+                                
+                                VM_Migrate(vm, sorted[k]);
+                                break;
+                            }
                     }
                 }
                 
@@ -299,6 +391,7 @@ void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
                 //     Machine_SetState(i, S5);
                 // }
             }
+        }
 }
 
 void Scheduler::HandleWarning(Time_t now, TaskId_t task_id) {
@@ -324,22 +417,26 @@ void Scheduler::HandleWarning(Time_t now, TaskId_t task_id) {
             // Note: Make code safe with VM migration AND consider Machine State!
             if (reqMem <= remainingMem && Machine_GetCPUType(sorted[i]) == tskInf.required_cpu
         && !migration[vm] && migrationCooldown[vm] == 0) {
-                SimOutput("Migrating VM in HandleWarning " + to_string(vm) + " to machine " + to_string(sorted[i]), 3);
+                SimOutput("Attempting to migrate VM in HandleWarning " + to_string(vm) + " to machine " + to_string(sorted[i]), 3);
                 SimOutput("Machine has " + to_string(remainingMem) + " left, while the new VM will take up " + 
                 to_string(reqMem) + " amount of memory.", 3);
 
-                migration[vm] = true;
-                pendingVMs[sorted[i]].push_back(vm);
-                SetTaskPriority(task_id, HIGH_PRIORITY);
-
                 vector<VMId_t>::iterator itr = find(vms_per_machine[vmInf.machine_id].begin(), 
-                vms_per_machine[vmInf.machine_id].end(), vm);
+                    vms_per_machine[vmInf.machine_id].end(), vm);
 
-                if (itr != vms_per_machine[vmInf.machine_id].end()) {
-                    vms_per_machine[vmInf.machine_id].erase(itr);
-                }
-
-                VM_Migrate(vm, sorted[i]);
+                    if (itr != vms_per_machine[vmInf.machine_id].end()) {
+                        vms_per_machine[vmInf.machine_id].erase(itr);
+                    }
+                
+                if (mchInf.s_state != S5) {
+                    migrationQueued[sorted[i]] = true;   
+                    pendingMigration[sorted[i]] = vm;
+                } else {
+                    migration[vm] = true;
+                    SetTaskPriority(task_id, HIGH_PRIORITY);
+                    VM_Migrate(vm, sorted[i]);
+                    break;
+            }
         }
     }
 
