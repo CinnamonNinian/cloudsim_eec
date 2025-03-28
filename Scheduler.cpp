@@ -451,8 +451,7 @@ void Scheduler::Shutdown(Time_t time) {
 }
 
 void Scheduler::TaskComplete(Time_t now, TaskId_t task_id) {
-    vector<MachineId_t> sorted = machines;
-    sort(sorted.begin(), sorted.end(), compareMachines);
+    // TODO: Check if task's machine has high utilization,
 }
 
 static Scheduler Scheduler;
