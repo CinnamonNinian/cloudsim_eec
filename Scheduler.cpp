@@ -23,7 +23,11 @@ static map<MachineId_t, bool> experiencingMigration;
 
 
 static map<VMId_t, vector<TaskId_t>> pendingTasks;
+
 static map<MachineId_t, vector<VMId_t>> pendingVMs;
+
+static map<MachineId_t, bool> migrationQueued;
+static map<MachineId_t, VMId_t> pendingMigration; // only one VM can migrate at a time
 
 static map<MachineId_t, unsigned> last_memory_used;
 static map<MachineId_t, Time_t> last_task;
@@ -76,11 +80,17 @@ void Scheduler::HandleStateChange(Time_t time, MachineId_t machine_id) {
     SimOutput("Handling state change for machine id: " + to_string(machine_id) + " with state " +
               to_string(Machine_GetInfo(machine_id).s_state) + " at time " + to_string(time), 3);
 
-    stateChange[machine_id] = false;
     if (Machine_GetInfo(machine_id).s_state != S0) {
         SimOutput("Skipping clearing pending VMs because s_state is not S0 for machine id " +
                   to_string(machine_id) + " at time " + to_string(time), 3);
         return;
+    }
+
+    if (pendingMigration[machine_id] && !experiencingMigration[machine_id]) {
+        experiencingMigration[machine_id] = true;
+        pendingMigration[machine_id] = false;
+        VM_Migrate(pendingMigration[machine_id], machine_id);
+        vms_per_machine[machine_id].push_back(pendingMigration[machine_id]);
     }
 
     for (unsigned i = 0; i < pendingVMs[machine_id].size(); ++i) {
@@ -96,6 +106,7 @@ void Scheduler::HandleStateChange(Time_t time, MachineId_t machine_id) {
         pendingTasks[vm_id].clear();
     }
     pendingVMs[machine_id].clear();
+    stateChange[machine_id] = false;
     SimOutput("State change has completed for machine id: " + to_string(machine_id) + " at time " + to_string(time), 3);
 }
 
@@ -199,7 +210,7 @@ bool Scheduler::FindMachineForVM(VMInfo_t vm_info, MachineId_t& machine_id, bool
                  << ") exceeds total memory (" << info.memory_size 
                  << ") for machine " << info.machine_id << ". VM list: ";
 
-            for (int j = 0; j < active_machines; ++j) {
+            for (unsigned j = 0; j < active_machines; ++j) {
                 cout << "Machine " << j << ": ";
                 for (auto vm : vms_per_machine[j]) {
                     cout << vm << " ";
@@ -335,32 +346,41 @@ void Scheduler::HandleWarning(Time_t now, TaskId_t task_id) {
         return;
     }
     
-    migration[vm_to_migrate] = true;
 
     MachineId_t dest_machine;
     bool found = FindMachineForVM(VM_GetInfo(vm_to_migrate), dest_machine, true);
+    assert(!experiencingMigration[dest_machine]);
+
     if (!found) {
         SimOutput("No suitable machine found for migrating VM " + to_string(vm_to_migrate), 3);
-        migration[vm_to_migrate] = false;
         return;
     }
 
+    migration[vm_to_migrate] = true;
     experiencingMigration[dest_machine] = true;
+    stateChange[dest_machine] = true;
 
+    Machine_SetState(dest_machine, S0);
 
+    // find VM's old machine and remove it from mapping
     auto& vm_list = vms_per_machine[VM_GetInfo(vm_to_migrate).machine_id];
 
     auto it = find(vm_list.begin(), vm_list.end(), vm_to_migrate);
     assert(find(vm_list.begin(), vm_list.end(), vm_to_migrate) != vm_list.end());
     vm_list.erase(it); 
 
-    VM_Migrate(vm_to_migrate, dest_machine);
-    vms_per_machine[dest_machine].push_back(vm_to_migrate);
+    if (!stateChange[dest_machine] && Machine_GetInfo(dest_machine).s_state == S0) {
+        VM_Migrate(vm_to_migrate, dest_machine);
+        vms_per_machine[dest_machine].push_back(vm_to_migrate);
+        SimOutput("Initiated migration of VM " + to_string(vm_to_migrate) + " to machine " +
+        to_string(dest_machine) + " at time " + to_string(now), 3);
+    } else {
+        migrationQueued[dest_machine] = true;   
+        pendingMigration[dest_machine] = vm_to_migrate;
+        SimOutput("Awaiting migration of VM " + to_string(vm_to_migrate) + " to machine " +
+        to_string(dest_machine) + " at time " + to_string(now), 3);
+    }
 
-    cout << "Machine that is being migrated to memory usage before migration: " << Machine_GetInfo(dest_machine).memory_used << endl;
-
-    SimOutput("Initiated migration of VM " + to_string(vm_to_migrate) + " to machine " +
-              to_string(dest_machine) + " at time " + to_string(now), 3);
 }
 
 void Scheduler::PeriodicCheck(Time_t now) {
@@ -373,46 +393,50 @@ void Scheduler::PeriodicCheck(Time_t now) {
         unsigned current_mem = info.memory_used;
         unsigned previous_mem = last_memory_used[machine_id];
 
+        // if this machine has load over 80% (memory used / memory size)
+        //  migrate largest VM to lower utilized machine, reuse FindMachine()
+        
         if (now - last_task_time >= STATE_CHANGE_THRESHOLD) {
 
             /*
                 S-State Change
             */
 
-        //     cout << "cur mem: " << current_mem << endl;
-        //     cout << "previous mem: " << previous_mem << endl;
-        //    MachineState_t s_state = info.s_state;
-        //    if (current_mem == 0 && previous_mem == 0) {
-        //         s_state = s_state != S5 ? MachineState_t(s_state + 1) : S5;
-        //    } else {
-        //         s_state = s_state != S0 ? MachineState_t(s_state - 1) : S0;
-        //    }
+            cout << "cur mem: " << current_mem << endl;
+            cout << "previous mem: " << previous_mem << endl;
+           MachineState_t s_state = info.s_state;
+           if (current_mem == 0 && previous_mem == 0) {
+                s_state = s_state != S5 ? MachineState_t(s_state + 1) : S5;
+           } else {
+                s_state = s_state != S0 ? MachineState_t(s_state - 1) : S0;
+           }
 
-        //    if (s_state != info.s_state) {
-        //     Machine_SetState(machine_id, s_state);
-        //     SimOutput("PeriodicCheck(): Updated s_state of machine " + to_string(machine_id) +
-        //             " to " + to_string(s_state) + " at time " + to_string(now), 3);
-        //     }
+           if (s_state != info.s_state) {
+            stateChange[machine_id] = true;
+            Machine_SetState(machine_id, s_state);
+            SimOutput("PeriodicCheck(): Updated s_state of machine " + to_string(machine_id) +
+                    " to " + to_string(s_state) + " at time " + to_string(now), 3);
+            }
 
-        //     /*
-        //         P-State Change
-        //     */
-        //     CPUPerformance_t p_state = info.p_state;
+            /*
+                P-State Change
+            */
+            CPUPerformance_t p_state = info.p_state;
 
-        //     if (current_mem > previous_mem) {
-        //         p_state = p_state != P0 ? CPUPerformance_t(p_state - 1) : P0;
-        //     } else if (current_mem < previous_mem) {
-        //         p_state = p_state != P3 ? CPUPerformance_t(p_state + 1) : P3;
-        //     }
+            if (current_mem > previous_mem) {
+                p_state = p_state != P0 ? CPUPerformance_t(p_state - 1) : P0;
+            } else if (current_mem < previous_mem) {
+                p_state = p_state != P3 ? CPUPerformance_t(p_state + 1) : P3;
+            }
 
-        //     if (p_state != info.p_state) {
-        //         Machine_SetCorePerformance(machine_id, 0, p_state);
-        //         SimOutput("PeriodicCheck(): Updated p_state of machine " + to_string(machine_id) +
-        //                 " to " + to_string(p_state) + " at time " + to_string(now), 3);
-        //     }
+            if (p_state != info.p_state) {
+                Machine_SetCorePerformance(machine_id, 0, p_state);
+                SimOutput("PeriodicCheck(): Updated p_state of machine " + to_string(machine_id) +
+                        " to " + to_string(p_state) + " at time " + to_string(now), 3);
+            }
 
-        //     last_task[machine_id] = now;
-        //     last_memory_used[machine_id] = current_mem;
+            last_task[machine_id] = now;
+            last_memory_used[machine_id] = current_mem;
         }
     }
 }
