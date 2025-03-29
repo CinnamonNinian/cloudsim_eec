@@ -1,2 +1,0 @@
-Scheduler::Init(): Total number of machines is 24
-Number of tasks: 4088

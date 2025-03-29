@@ -9,6 +9,9 @@
 
 #include "Scheduler.hpp"
 
+#define STATE_CHANGE_THRESHOLD 100000000
+#define BASIC_TASK_THRESHOLD 100
+
 // static bool migrating = false;
 static unsigned active_machines;
 static map<MachineId_t, vector<VMId_t>> vms_per_machine;
@@ -16,11 +19,18 @@ static map<MachineId_t, vector<VMId_t>> vms_per_machine;
 static map<TaskId_t, VMId_t> VM_per_task;
 
 static map<VMId_t, bool> migration;
+static map<MachineId_t, bool> experiencingMigration;
 static map<MachineId_t, bool> stateChange;
 static map<VMId_t, vector<TaskId_t>> pendingTasks;
 static map<MachineId_t, vector<VMId_t>> pendingVMs;
 
+static map<MachineId_t, Time_t> last_task;
+static map<MachineId_t, unsigned> last_memory_used;
+
 static map<VMId_t, unsigned> migrationCooldown;
+
+static map<MachineId_t, bool> migrationQueued;
+static map<MachineId_t, VMId_t> pendingMigration; // only one VM can migrate at a time
 
 static vector<MachineId_t> gpuMachines;
 
@@ -39,6 +49,65 @@ unsigned CalcPendingMem(vector<VMId_t> vms) {
         }
     }
     return pending_mem;
+}
+
+unsigned CalcUtil(MachineId_t machine_id) {
+    MachineInfo_t info = Machine_GetInfo(machine_id);
+    unsigned mem_size = info.memory_size;
+
+    // Machines with more memory should be able to handle more tasks.
+    return mem_size / BASIC_TASK_THRESHOLD;
+}
+
+void DecrementState(Time_t now, MachineId_t machine_id) {
+    MachineInfo_t info = Machine_GetInfo(machine_id);
+    Time_t last_task_time = last_task[machine_id];
+
+    unsigned current_mem = info.memory_used;
+    unsigned previous_mem = last_memory_used[machine_id];
+
+    if (now - last_task_time >= STATE_CHANGE_THRESHOLD) {
+
+        /*
+            S-State Change
+        */
+
+        cout << "cur mem: " << current_mem << endl;
+        cout << "previous mem: " << previous_mem << endl;
+        MachineState_t s_state = info.s_state;
+        if (current_mem == 0 && previous_mem == 0) {
+            s_state = s_state != S5 ? MachineState_t(s_state + 1) : S5;
+        } else {
+            s_state = s_state != S0 ? MachineState_t(s_state - 1) : S0;
+        }
+
+        if (s_state != info.s_state) {
+        stateChange[machine_id] = true;
+        Machine_SetState(machine_id, s_state);
+        SimOutput("PeriodicCheck(): Updated s_state of machine " + to_string(machine_id) +
+                " to " + to_string(s_state) + " at time " + to_string(now), 3);
+        }
+
+        /*
+            P-State Change
+        */
+        CPUPerformance_t p_state = info.p_state;
+
+        if (current_mem > previous_mem) {
+            p_state = p_state != P0 ? CPUPerformance_t(p_state - 1) : P0;
+        } else if (current_mem < previous_mem) {
+            p_state = p_state != P3 ? CPUPerformance_t(p_state + 1) : P3;
+        }
+
+        if (p_state != info.p_state) {
+            Machine_SetCorePerformance(machine_id, 0, p_state);
+            SimOutput("PeriodicCheck(): Updated p_state of machine " + to_string(machine_id) +
+                    " to " + to_string(p_state) + " at time " + to_string(now), 3);
+        }
+
+        last_task[machine_id] = now;
+        last_memory_used[machine_id] = current_mem;
+    }
 }
 
 void Scheduler::Init() {

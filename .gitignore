@@ -3,3 +3,5 @@ Output.md
 scheduler
 simulator
 Scheduler.o
+*.txt
+*.md.txt
